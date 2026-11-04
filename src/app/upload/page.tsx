@@ -172,7 +172,7 @@ export default function UploadPage() {
   }
 
   async function onLassoSave(blob: Blob) {
-    await saveStickerBlob(blob);
+    await saveStickerBlob(await trimToAlpha(blob));
     setLassoCapture(null);
     setNote("Saved. Cut another shape or rotate to a new angle.");
   }
@@ -182,17 +182,40 @@ export default function UploadPage() {
       <StudioHeader />
       <main className="w-full max-w-4xl mx-auto px-8 pt-6 pb-24">
         <div className="flex items-baseline justify-between">
-          <h1 className="display-italic text-[2.4rem] leading-none">
-            bring something in
-          </h1>
+          <div>
+            <div className="eyebrow">sticker creation station</div>
+            <h1 className="display-italic text-[2.4rem] leading-none mt-2">
+              bring something in
+            </h1>
+          </div>
           <Link
             href="/"
             className="display-italic text-muted text-[0.9rem] hover:text-ochre-deep"
           >
-            ← studio
+            ← scrapbook
           </Link>
         </div>
-        <div className="rule mt-6 mb-10" />
+        <ol className="steps mt-6">
+          {[
+            ["i", "upload an image"],
+            ["ii", "give it a 3D body"],
+            ["iii", "cut your stickers"],
+          ].map(([n, label], i) => {
+            const current =
+              glbUrl || puppetMode ? 2 : phase === "idle" ? 0 : 1;
+            return (
+              <li
+                key={n}
+                data-active={i === current}
+                data-done={i < current}
+              >
+                <span className="n">{n}.</span>
+                {label}
+              </li>
+            );
+          })}
+        </ol>
+        <div className="rule mt-4 mb-10" />
 
         {phase === "idle" && (
           <FileDrop
@@ -326,20 +349,19 @@ export default function UploadPage() {
                   <h3 className="eyebrow">just taken</h3>
                   <div className="grid grid-cols-3 gap-2 mt-3">
                     {recentStickerThumbs.map((t, i) => (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        key={i}
-                        src={t}
-                        alt="recent sticker"
-                        className="sticker-tile aspect-square object-contain p-1"
-                      />
+                      <div key={i} className="sticker-cut-wrap p-2">
+                        <div className="sticker-cut">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={t} alt="recent sticker" />
+                        </div>
+                      </div>
                     ))}
                   </div>
                   <Link
                     href="/"
                     className="mt-6 inline-block display-italic text-[0.9rem] text-muted hover:text-ochre-deep"
                   >
-                    ← back to the studio
+                    ← back to the scrapbook
                   </Link>
                 </>
               )}
@@ -407,12 +429,57 @@ function FileDrop({
 }
 
 /**
- * Crops a PNG to the bounding box of its non-transparent pixels.
- * The studio scene has a solid canvas background; for now we just return the
- * blob unchanged so capturing keeps the warm paper around the subject. We keep
- * this function so we can swap in a transparent capture later without churning
- * the call site.
+ * Crops a PNG to the bounding box of its non-transparent pixels, so a sticker
+ * is only as big as its silhouette. Returns the original blob when there is
+ * nothing to crop (fully opaque or fully empty).
  */
 async function trimToAlpha(blob: Blob): Promise<Blob> {
-  return blob;
+  const url = URL.createObjectURL(blob);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("image load failed"));
+      el.src = url;
+    });
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return blob;
+    ctx.drawImage(img, 0, 0);
+    const { data } = ctx.getImageData(0, 0, w, h);
+    let minX = w, minY = h, maxX = -1, maxY = -1;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (data[(y * w + x) * 4 + 3] > 8) {
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+    if (maxX < 0) return blob;
+    const pad = 4;
+    minX = Math.max(0, minX - pad);
+    minY = Math.max(0, minY - pad);
+    maxX = Math.min(w - 1, maxX + pad);
+    maxY = Math.min(h - 1, maxY + pad);
+    const cw = maxX - minX + 1;
+    const ch = maxY - minY + 1;
+    if (cw === w && ch === h) return blob;
+    const out = document.createElement("canvas");
+    out.width = cw;
+    out.height = ch;
+    out.getContext("2d")?.drawImage(c, minX, minY, cw, ch, 0, 0, cw, ch);
+    const trimmed = await new Promise<Blob | null>((resolve) =>
+      out.toBlob((b) => resolve(b), "image/png"),
+    );
+    return trimmed ?? blob;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }

@@ -13,8 +13,8 @@ export function StudioHeader() {
           </div>
         </Link>
         <nav className="flex items-center gap-6 text-[0.78rem]">
-          <Link href="/upload" className="btn-ghost">
-            new piece &nbsp;⊕
+          <Link href="/" className="btn-ghost">
+            scrapbook
           </Link>
         </nav>
       </div>

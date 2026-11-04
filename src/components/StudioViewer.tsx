@@ -96,11 +96,20 @@ function CaptureBridge({
   const { gl, scene, camera } = useThree();
   useEffect(() => {
     captureRef.current = () => {
+      // Render once without the studio backdrop so the capture keeps only the
+      // object's silhouette (alpha everywhere else). That silhouette is what
+      // becomes the die-cut sticker shape.
+      const prevBg = scene.background;
       try {
+        scene.background = null;
+        gl.setClearColor(0x000000, 0);
         gl.render(scene, camera);
         return gl.domElement.toDataURL("image/png");
       } catch {
         return null;
+      } finally {
+        scene.background = prevBg;
+        gl.render(scene, camera);
       }
     };
   }, [gl, scene, camera, captureRef]);

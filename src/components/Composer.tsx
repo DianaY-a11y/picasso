@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as fabric from "fabric";
 import { getDb } from "@/lib/db";
+import { withWhiteOutline } from "@/lib/outline";
 import type { Composition, Sticker } from "@/lib/types";
 
 type Tool = "select" | "draw";
@@ -148,8 +149,16 @@ export function Composer({ id }: { id: string }) {
     // Embed as a data URL, not an object URL. blob: URLs die when the page
     // reloads, which means a saved composition would lose its stickers on the
     // next visit. Data URLs serialize into the canvas JSON directly.
-    const dataUrl = await blobToDataUrl(s.blob);
+    const dataUrl = await withWhiteOutline(await blobToDataUrl(s.blob));
     const img = await fabric.FabricImage.fromURL(dataUrl);
+    img.set({
+      shadow: new fabric.Shadow({
+        color: "rgba(40,28,12,0.22)",
+        blur: 6,
+        offsetX: 0,
+        offsetY: 2,
+      }),
+    });
     const maxEdge = 280;
     const scale = Math.min(
       maxEdge / (img.width ?? maxEdge),
@@ -234,7 +243,7 @@ export function Composer({ id }: { id: string }) {
           <div className="col-span-3 text-[0.85rem] text-muted display-italic">
             no stickers yet —{" "}
             <Link href="/upload" className="text-ochre-deep">
-              make some
+              create new stickers
             </Link>
           </div>
         )}
@@ -243,16 +252,18 @@ export function Composer({ id }: { id: string }) {
             key={s.id}
             type="button"
             onClick={() => addSticker(s)}
-            className="sticker-tile aspect-square p-1 hover:cursor-grab"
+            className="aspect-square p-2 hover:cursor-grab"
             title={s.name}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={s.thumbDataUrl}
-              alt={s.name}
-              className="w-full h-full object-contain pointer-events-none"
-              draggable={false}
-            />
+            <span className="sticker-cut">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={s.thumbDataUrl}
+                alt={s.name}
+                className="pointer-events-none"
+                draggable={false}
+              />
+            </span>
           </button>
         ))}
       </div>
@@ -263,7 +274,8 @@ export function Composer({ id }: { id: string }) {
   return (
     <main className="w-full max-w-[1240px] mx-auto px-6 pt-4 pb-16">
       <div className="flex items-baseline justify-between">
-        <div className="flex items-baseline gap-4">
+        <div className="flex flex-col gap-2">
+          <span className="eyebrow">composition studio</span>
           <input
             value={name}
             onChange={(e) => {
@@ -298,7 +310,7 @@ export function Composer({ id }: { id: string }) {
             download png
           </button>
           <Link href="/" className="btn-ghost">
-            ← studio
+            ← scrapbook
           </Link>
         </div>
       </div>

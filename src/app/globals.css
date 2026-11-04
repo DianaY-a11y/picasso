@@ -142,3 +142,308 @@ canvas {
   position: relative;
   z-index: 1;
 }
+
+/* ------------------------------------------------------------------ */
+/* Die-cut stickers                                                    */
+/* The sticker's own alpha silhouette gets a white paper border (four  */
+/* stacked hard drop-shadows dilate the shape) and a soft contact      */
+/* shadow that deepens on hover.                                       */
+/* ------------------------------------------------------------------ */
+
+.sticker-cut {
+  --edge: 2.5px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(var(--tilt, 0deg));
+  transition: transform 240ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.sticker-cut img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  user-select: none;
+  filter: drop-shadow(var(--edge) 0 0 #fff) drop-shadow(calc(var(--edge) * -1) 0 0 #fff)
+    drop-shadow(0 var(--edge) 0 #fff) drop-shadow(0 calc(var(--edge) * -1) 0 #fff)
+    drop-shadow(0 1px 1px rgba(40, 28, 12, 0.18))
+    drop-shadow(0 0 0 rgba(40, 28, 12, 0));
+  transition: filter 240ms ease;
+}
+
+.sticker-cut-wrap:hover .sticker-cut,
+button:hover > .sticker-cut {
+  transform: rotate(var(--tilt, 0deg)) translateY(-3px) scale(1.04);
+}
+
+.sticker-cut-wrap:hover .sticker-cut img,
+button:hover > .sticker-cut img {
+  filter: drop-shadow(var(--edge) 0 0 #fff) drop-shadow(calc(var(--edge) * -1) 0 0 #fff)
+    drop-shadow(0 var(--edge) 0 #fff) drop-shadow(0 calc(var(--edge) * -1) 0 #fff)
+    drop-shadow(0 1px 1px rgba(40, 28, 12, 0.18))
+    drop-shadow(0 9px 9px rgba(40, 28, 12, 0.32));
+}
+
+/* ------------------------------------------------------------------ */
+/* Landing: black room, open scrapbook                                 */
+/* ------------------------------------------------------------------ */
+
+.landing {
+  min-height: 100dvh;
+  background: #000;
+  color: #e9dcbe;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.landing__mark {
+  padding-top: 22px;
+  font-size: 0.95rem;
+  color: #e9dcbe;
+  opacity: 0.85;
+}
+
+.landing__stage {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 0;
+}
+
+.landing__foot {
+  padding-bottom: 18px;
+  font-size: 0.85rem;
+  color: #8a7a64;
+}
+
+.scrapbook {
+  position: relative;
+  width: min(1100px, 96vw, calc((100dvh - 110px) * 1.259));
+  aspect-ratio: 1050 / 834;
+  background: url("/scrapbook.jpg") center / 100% 100% no-repeat;
+  container-type: inline-size;
+  z-index: 1;
+}
+
+.scrapbook-page {
+  position: absolute;
+  top: 8%;
+  bottom: 7%;
+  width: 36%;
+  display: flex;
+  flex-direction: column;
+  color: var(--color-ink);
+}
+.scrapbook-page--left {
+  left: 8.5%;
+}
+.scrapbook-page--right {
+  left: 55.5%;
+}
+
+.scrapbook-page__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5em;
+  padding-bottom: 1.1cqw;
+  border-bottom: 1px solid rgba(138, 122, 100, 0.35);
+  margin-bottom: 1.2cqw;
+}
+.scrapbook-page__head .eyebrow {
+  font-size: clamp(0.55rem, 1.05cqw, 0.75rem);
+  color: var(--color-ink-soft);
+}
+.scrapbook-page__head .display-italic {
+  font-size: clamp(0.7rem, 1.45cqw, 1rem);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scrapbook-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1cqw 1cqw 1.5cqw 0.4cqw;
+  margin-right: -1.2cqw;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(138, 122, 100, 0.55) transparent;
+}
+.scrapbook-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.scrapbook-scroll::-webkit-scrollbar-thumb {
+  background: rgba(138, 122, 100, 0.5);
+  border-radius: 6px;
+}
+.scrapbook-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrapbook-empty {
+  margin-top: 6cqw;
+  text-align: center;
+  font-size: clamp(0.8rem, 1.6cqw, 1.1rem);
+  line-height: 1.5;
+  color: var(--color-muted);
+  padding: 0 2cqw;
+}
+
+.scrapbook-cta {
+  align-self: center;
+  margin-top: 1.4cqw;
+  font-size: clamp(0.85rem, 2cqw, 1.35rem);
+  color: var(--color-ochre-deep);
+  border-bottom: 1px solid currentColor;
+  line-height: 1.2;
+  transition: color 160ms ease, transform 160ms ease;
+}
+.scrapbook-cta:hover {
+  color: var(--color-terracotta);
+  transform: translateY(-1px);
+}
+
+/* stickers sheet */
+.sticker-sheet {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.8cqw 1.4cqw;
+}
+.sticker-cut-wrap {
+  position: relative;
+  aspect-ratio: 1;
+  margin: 0;
+  padding: 0.9cqw;
+}
+
+/* compositions sheet: taped prints */
+.comp-sheet {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2.6cqw 2cqw;
+  padding-top: 1cqw;
+}
+.comp-print-wrap {
+  position: relative;
+}
+.comp-print {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #fffdf7;
+  padding: 0.8cqw 0.8cqw 0.5cqw;
+  transform: rotate(var(--tilt, 0deg));
+  box-shadow: 0 1px 2px rgba(40, 28, 12, 0.18);
+  transition: transform 240ms cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 240ms ease;
+}
+.comp-print-wrap:hover .comp-print {
+  transform: rotate(var(--tilt, 0deg)) translateY(-3px);
+  box-shadow: 0 10px 16px -6px rgba(40, 28, 12, 0.38);
+}
+.comp-print__img {
+  aspect-ratio: 8 / 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--color-paper);
+}
+.comp-print__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.comp-print__name {
+  font-size: clamp(0.65rem, 1.3cqw, 0.9rem);
+  color: var(--color-ink-soft);
+  margin-top: 0.4cqw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.comp-print__tape {
+  position: absolute;
+  top: -1cqw;
+  left: 50%;
+  width: 38%;
+  height: 2cqw;
+  transform: translateX(-50%) rotate(-3deg);
+  background: rgba(214, 164, 142, 0.62);
+  box-shadow: 0 0 1px rgba(40, 28, 12, 0.15);
+  clip-path: polygon(2% 0, 98% 4%, 100% 100%, 0 96%);
+}
+
+.scrap-delete {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 13px;
+  line-height: 1;
+  background: rgba(250, 245, 233, 0.95);
+  border: 1px solid var(--color-canvas-edge);
+  color: var(--color-muted);
+  opacity: 0;
+  transition: opacity 150ms ease, color 150ms ease;
+  z-index: 2;
+}
+.sticker-cut-wrap:hover .scrap-delete,
+.comp-print-wrap:hover .scrap-delete,
+.scrap-delete:focus-visible {
+  opacity: 1;
+}
+.scrap-delete:hover {
+  color: var(--color-terracotta);
+  border-color: var(--color-terracotta);
+}
+
+/* ------------------------------------------------------------------ */
+/* Station step indicator                                              */
+/* ------------------------------------------------------------------ */
+.steps {
+  display: flex;
+  gap: 1.75rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.steps li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.steps li .n {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+.steps li[data-active="true"] {
+  color: var(--color-ochre-deep);
+}
+.steps li[data-done="true"] {
+  color: var(--color-ink-soft);
+}
+
+/* The landing is a dark room: no paper grain or warm vignette over it. */
+body:has(.landing) {
+  background: #000;
+}
+body:has(.landing)::before,
+body:has(.landing)::after {
+  display: none;
+}
