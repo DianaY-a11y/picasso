@@ -775,3 +775,61 @@ body:has(.landing)::after {
   border-color: rgba(138, 122, 100, 0.55);
   background: rgba(251, 247, 236, 0.35);
 }
+
+/* sticker station: the work sheet keeps the 3D viewer's 4:3 shape and fits
+   whatever room the open book leaves */
+.station-stage {
+  position: relative;
+}
+.station-sheet {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  height: 100%;
+  max-width: 100%;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0.6cqw;
+}
+.station-sheet > * {
+  width: 100%;
+}
+.station-sheet .tile-dashed {
+  border-radius: 2px;
+}
+.station-tray .sticker-tray:not(:empty) {
+  min-height: 6.4cqw;
+}
+.tray-item {
+  flex: 0 0 auto;
+  width: 6.4cqw;
+  height: 6.4cqw;
+  padding: 0.5cqw;
+  display: block;
+}
+.station-sheet canvas {
+  max-height: 100%;
+  max-width: 100%;
+  width: auto !important;
+  margin: 0 auto;
+}
+.station-sheet > div:has(> canvas) {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* LassoMask's own hint line: the station shows its hints under the sheet */
+.station-sheet > div:has(> canvas) > p {
+  display: none;
+}
+/* Pin studio pages to their page box so flex children get a definite height
+   to share (the sheet then fills whatever room is left). */
+.page > .studio-page {
+  position: absolute;
+  inset: 0;
+  height: auto;
+}

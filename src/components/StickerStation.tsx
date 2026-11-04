@@ -7,6 +7,7 @@ import { LassoMask, type LassoMaskHandle } from "@/components/LassoMask";
 import { getDb, newId } from "@/lib/db";
 import { makeThumbDataUrl } from "@/lib/thumb";
 import { trimToAlpha } from "@/lib/trim";
+import { generateModel, GenerateError } from "@/lib/generate3d";
 import type { CaptureFn } from "@/components/StudioViewer";
 
 const StudioViewer = dynamic(
@@ -39,6 +40,8 @@ export function StickerStation({
   const [glbUrl, setGlbUrl] = useState<string | null>(null);
   const [puppetMode, setPuppetMode] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
+  const [genStatus, setGenStatus] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sourceImageId, setSourceImageId] = useState<string | null>(null);
@@ -92,10 +95,14 @@ export function StickerStation({
     setError(null);
   }
 
+  // Stop polling if the studio closes mid-generation.
+  useEffect(() => () => abortRef.current?.abort(), []);
+
   async function giveItABody() {
     if (!file) return;
     setError(null);
     setNote(null);
+    setGenStatus("starting");
     setPhase("generating");
 
     const thumb = await makeThumbDataUrl(file);
@@ -109,56 +116,41 @@ export function StickerStation({
     });
     setSourceImageId(sId);
 
-    const fd = new FormData();
-    fd.append("image", file);
-
-    let res: Response;
+    const ac = new AbortController();
+    abortRef.current = ac;
     try {
-      res = await fetch("/api/generate-model", { method: "POST", body: fd });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setError(`Network error: ${msg}`);
-      setPuppetMode(true);
-      setPhase("ready");
-      return;
-    }
-
-    if (res.ok && res.headers.get("Content-Type")?.includes("gltf")) {
-      const glbBlob = await res.blob();
+      const { glb, model } = await generateModel(file, {
+        signal: ac.signal,
+        onStatus: setGenStatus,
+      });
       const mId = newId();
       await getDb().modelAssets.put({
         id: mId,
         sourceImageId: sId,
         createdAt: Date.now(),
-        meshBlob: glbBlob,
+        meshBlob: glb,
         provider: "replicate",
-        modelVersion: res.headers.get("X-Picasso-Model") ?? "unknown",
+        modelVersion: model,
       });
       setModelAssetId(mId);
-      setGlbUrl(URL.createObjectURL(glbBlob));
+      setGlbUrl(URL.createObjectURL(glb));
       setPhase("ready");
       setNote("A small body has been made. Turn it; take the angles you want.");
-      return;
-    }
-
-    let reason = "unknown";
-    let message = "Could not generate a 3D body.";
-    try {
-      const body = (await res.json()) as { reason?: string; message?: string };
-      reason = body.reason ?? reason;
-      message = body.message ?? message;
-    } catch {
-      // body wasn't JSON
-    }
-
-    setPuppetMode(true);
-    setPhase("ready");
-    if (reason === "no_token") {
-      setNote(
-        "No Replicate token configured — using a flat puppet so you can keep working. Set REPLICATE_API_TOKEN to enable true 3D.",
+    } catch (e) {
+      if (ac.signal.aborted) return;
+      const reason = e instanceof GenerateError ? e.reason : "network";
+      const message = e instanceof Error ? e.message : String(e);
+      console.error("[picasso] 3D generation failed:", reason, message);
+      setPuppetMode(true);
+      setPhase("ready");
+      setError(
+        reason === "no_token"
+          ? `No 3D yet: ${message} Using a flat puppet for now.`
+          : `Couldn't make a 3D body — ${message} Using a flat puppet for now.`,
       );
-    } else {
-      setError(`${message} Using a flat puppet instead.`);
+    } finally {
+      setGenStatus(null);
+      abortRef.current = null;
     }
   }
 
@@ -220,46 +212,91 @@ export function StickerStation({
         ? "bring something in"
         : "give it a body";
 
-  /* ——— left page: guidance + controls ——— */
-  const left = (
+  const genLabel =
+    genStatus === "downloading"
+      ? "bringing the body home…"
+      : genStatus === "processing"
+        ? "shaping a body… this can take a few minutes"
+        : "waking the sculptor…";
+
+  /* Everything sits on one loose sheet laid across the open book, like the
+     composition studio: header + steps above, the work sheet in the middle,
+     the actions under it, and the stickers you've just taken at the bottom. */
+  const spread = (
     <div className="studio-page">
-      <div className="eyebrow">sticker creation station</div>
-      <h2 className="studio-title text-ink mt-3">{title}</h2>
+      {/* header */}
+      <div className="flex items-end justify-between gap-6 pr-10">
+        <div className="flex flex-col gap-1 min-w-0">
+          <span className="eyebrow">sticker creation station</span>
+          <h2 className="studio-title text-ink">{title}</h2>
+        </div>
+        <ol className="steps shrink-0">
+          {STEPS.map((s, i) => (
+            <li key={s.n} data-active={i === step} data-done={i < step}>
+              <span className="n">{s.n}.</span>
+              {s.label}
+            </li>
+          ))}
+        </ol>
+      </div>
 
-      <ol className="steps steps--stack mt-5">
-        {STEPS.map((s, i) => (
-          <li key={s.n} data-active={i === step} data-done={i < step}>
-            <span className="n">{s.n}.</span>
-            {s.label}
-          </li>
-        ))}
-      </ol>
+      {/* the sheet */}
+      <div className="compose-stage station-stage mt-4">
+        <div className="mounted station-sheet">
+          {phase === "idle" && <FileDrop onPick={onPickFile} />}
 
-      <div className="rule my-5" />
+          {phase !== "idle" && previewUrl && !hasBody && (
+            <div className="w-full h-full flex flex-col items-center justify-center p-6">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previewUrl}
+                alt={file?.name ?? "preview"}
+                className={`min-h-0 max-w-full max-h-full object-contain ${
+                  phase === "generating" ? "animate-pulse" : ""
+                }`}
+              />
+              <div className="studio-copy text-muted mt-2 truncate max-w-full">
+                {file?.name}
+              </div>
+            </div>
+          )}
 
-      <div className="flex flex-col items-start gap-3">
+          {hasBody &&
+            previewUrl &&
+            (lassoCapture ? (
+              <LassoMask
+                ref={lassoRef}
+                imageUrl={lassoCapture}
+                onSave={onLassoSave}
+                onStateChange={setLassoState}
+              />
+            ) : (
+              <StudioViewer
+                glbUrl={glbUrl}
+                puppetUrl={puppetMode ? previewUrl : null}
+                onReady={onViewerReady}
+              />
+            ))}
+        </div>
+      </div>
+
+      {/* actions under the sheet */}
+      <div className="mt-4 flex items-baseline justify-center gap-6 flex-wrap text-center">
         {phase === "idle" && (
-          <p className="studio-copy">
-            Choose a photograph, a sketch, anything with a shape. Drop it on the
-            right-hand page.
+          <p className="studio-copy text-muted">
+            a photograph, a sketch, anything with a shape — drop it on the sheet.
           </p>
         )}
 
         {!hasBody && phase !== "idle" && (
           <>
-            <p className="studio-copy">
-              Give the object a small 3D body so you can turn it and cut it
-              from any side. This can take a minute.
-            </p>
             <button
               type="button"
               disabled={phase === "generating"}
               onClick={giveItABody}
-              className="studio-action mt-1 disabled:cursor-wait"
+              className="studio-action disabled:cursor-wait"
             >
-              {phase === "generating"
-                ? "shaping a body… this can take a minute"
-                : "give it a body →"}
+              {phase === "generating" ? genLabel : "give it a 3D body →"}
             </button>
             {phase !== "generating" && (
               <button
@@ -275,10 +312,9 @@ export function StickerStation({
 
         {hasBody && !lassoCapture && (
           <>
-            <p className="studio-copy">
-              Drag to turn · right-drag to slide · scroll to step closer. Take
-              the whole view, or cut out just the part you want.
-            </p>
+            <span className="studio-copy text-muted">
+              drag to turn · right-drag to slide · scroll to step closer
+            </span>
             <button type="button" onClick={startLasso} className="studio-action">
               cut a shape ✎
             </button>
@@ -290,18 +326,16 @@ export function StickerStation({
               onClick={startOver}
               className="studio-action studio-action--quiet"
             >
-              start with a new image
+              new image
             </button>
           </>
         )}
 
         {lassoCapture && (
           <>
-            <p className="studio-copy">
-              Trace around what you want to keep. Whatever falls inside the
-              line becomes the sticker — come back to where you started and it
-              closes itself.
-            </p>
+            <span className="studio-copy text-muted">
+              trace around what you want; return to the start and it closes
+            </span>
             <button
               type="button"
               onClick={() => lassoRef.current?.save()}
@@ -327,90 +361,41 @@ export function StickerStation({
             </button>
           </>
         )}
-
-        {(note || error) && (
-          <p
-            className={`studio-copy mt-2 ${error ? "text-terracotta" : "text-muted"}`}
-          >
-            {error ?? note}
-          </p>
-        )}
       </div>
 
-      <div className="flex-1 min-h-0 flex flex-col mt-6">
-        {recent.length > 0 && (
-          <>
-            <h3 className="eyebrow">just taken · {recent.length}</h3>
-            <div className="scrapbook-scroll mt-2">
-              <div className="grid grid-cols-4 gap-2">
-                {recent.map((r) => (
-                  <div key={r.id} className="sticker-cut-wrap">
-                    <div className="sticker-cut">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={r.thumb} alt="sticker just taken" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-
-      <button
-        type="button"
-        onClick={onClose}
-        className="studio-action studio-action--quiet self-start mt-3"
-      >
-        ← back to the scrapbook
-      </button>
-    </div>
-  );
-
-  /* ——— right page: the work surface ——— */
-  const right = (
-    <div className="studio-page justify-center">
-      {phase === "idle" && <FileDrop onPick={onPickFile} />}
-
-      {phase !== "idle" && previewUrl && !hasBody && (
-        <figure className="mounted corners self-center p-4 max-w-full">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={previewUrl}
-            alt={file?.name ?? "preview"}
-            className={`block max-w-full max-h-[52cqw] object-contain ${
-              phase === "generating" ? "animate-pulse" : ""
-            }`}
-          />
-          <figcaption className="studio-copy text-muted mt-2 truncate">
-            {file?.name}
-          </figcaption>
-        </figure>
+      {(note || error) && (
+        <p
+          className={`studio-copy text-center mt-2 ${
+            error ? "text-terracotta" : "text-muted"
+          }`}
+        >
+          {error ?? note}
+        </p>
       )}
 
-      {hasBody && previewUrl && (
-        <div className="mounted p-2">
-          {lassoCapture ? (
-            <LassoMask
-              ref={lassoRef}
-              imageUrl={lassoCapture}
-              onSave={onLassoSave}
-              onStateChange={setLassoState}
-            />
-          ) : (
-            <StudioViewer
-              glbUrl={glbUrl}
-              puppetUrl={puppetMode ? previewUrl : null}
-              onReady={onViewerReady}
-            />
-          )}
+      {/* just taken */}
+      <div className="mt-3 station-tray">
+        <h3 className="eyebrow">
+          {recent.length > 0
+            ? `just taken · ${recent.length} — saved to your scrapbook`
+            : "your new stickers will collect here"}
+        </h3>
+        <div className="sticker-tray mt-1">
+          {recent.map((r) => (
+            <span key={r.id} className="tray-item">
+              <span className="sticker-cut">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={r.thumb} alt="sticker just taken" />
+              </span>
+            </span>
+          ))}
         </div>
-      )}
+      </div>
     </div>
   );
 
   return (
-    <Book left={left} right={right} className="h-full">
+    <Book spread={spread} className="h-full">
       <button
         type="button"
         onClick={onClose}
@@ -438,7 +423,7 @@ function FileDrop({ onPick }: { onPick: (f: File) => void }) {
         const f = e.dataTransfer.files?.[0];
         if (f) onPick(f);
       }}
-      className={`tile-dashed rounded-[4px] flex-1 flex flex-col items-center justify-center text-center px-8 cursor-pointer ${
+      className={`tile-dashed w-full h-full flex flex-col items-center justify-center text-center px-8 cursor-pointer ${
         drag ? "border-ochre-deep text-ochre-deep" : ""
       }`}
     >
