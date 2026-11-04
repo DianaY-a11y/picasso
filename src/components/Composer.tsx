@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Book } from "@/components/Book";
 import * as fabric from "fabric";
 import { getDb } from "@/lib/db";
 import { withWhiteOutline } from "@/lib/outline";
@@ -29,7 +29,16 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
-export function Composer({ id }: { id: string }) {
+export function Composer({
+  id,
+  onClose,
+  onCreateStickers,
+}: {
+  id: string;
+  onClose: () => void;
+  onCreateStickers?: () => void;
+}) {
+  const stageRef = useRef<HTMLDivElement | null>(null);
   const canvasElRef = useRef<HTMLCanvasElement | null>(null);
   const fabricRef = useRef<fabric.Canvas | null>(null);
   const [tool, setTool] = useState<Tool>("select");
@@ -121,9 +130,15 @@ export function Composer({ id }: { id: string }) {
 
     return () => {
       window.removeEventListener("keydown", onKey);
+      // Flush a pending autosave so closing the studio never loses work.
+      // doSave serializes the canvas synchronously before its first await.
+      if (saveTimer.current) {
+        window.clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+        void doSaveRef.current(false);
+      }
       c.dispose();
       fabricRef.current = null;
-      if (saveTimer.current) window.clearTimeout(saveTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -142,6 +157,35 @@ export function Composer({ id }: { id: string }) {
       c.isDrawingMode = false;
     }
   }, [tool, brushColor, brushSize]);
+
+  // Fit the fixed-resolution canvas into whatever room the open book gives
+  // it. Only the CSS size changes; Fabric maps pointer coordinates back to
+  // the 960×600 drawing surface.
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const fit = () => {
+      const c = fabricRef.current;
+      if (!c) return;
+      const pad = 8;
+      const w = Math.max(0, stage.clientWidth - pad * 2);
+      const h = Math.max(0, stage.clientHeight - pad * 2);
+      const scale = Math.min(w / CANVAS_W, h / CANVAS_H);
+      if (!(scale > 0)) return;
+      c.setDimensions(
+        {
+          width: `${Math.floor(CANVAS_W * scale)}px`,
+          height: `${Math.floor(CANVAS_H * scale)}px`,
+        },
+        { cssOnly: true },
+      );
+      c.calcOffset();
+    };
+    const ro = new ResizeObserver(fit);
+    ro.observe(stage);
+    fit();
+    return () => ro.disconnect();
+  }, []);
 
   const addSticker = useCallback(async (s: Sticker) => {
     const c = fabricRef.current;
@@ -236,45 +280,13 @@ export function Composer({ id }: { id: string }) {
     doSaveRef.current = doSave;
   }, [doSave]);
 
-  const stickerStrip = useMemo(
-    () => (
-      <div className="grid grid-cols-3 gap-2">
-        {stickers.length === 0 && (
-          <div className="col-span-3 text-[0.85rem] text-muted display-italic">
-            no stickers yet —{" "}
-            <Link href="/upload" className="text-ochre-deep">
-              create new stickers
-            </Link>
-          </div>
-        )}
-        {stickers.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            onClick={() => addSticker(s)}
-            className="aspect-square p-2 hover:cursor-grab"
-            title={s.name}
-          >
-            <span className="sticker-cut">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={s.thumbDataUrl}
-                alt={s.name}
-                className="pointer-events-none"
-                draggable={false}
-              />
-            </span>
-          </button>
-        ))}
-      </div>
-    ),
-    [stickers, addSticker],
-  );
+  const colors = ["#1c1812", "#a36f24", "#b8533a", "#6f7a5c", "#c89958"];
 
-  return (
-    <main className="w-full max-w-[1240px] mx-auto px-6 pt-4 pb-16">
-      <div className="flex items-baseline justify-between">
-        <div className="flex flex-col gap-2">
+  const spread = (
+    <div className="studio-page">
+      {/* header */}
+      <div className="flex items-end justify-between gap-6 pr-10">
+        <div className="flex flex-col gap-1 min-w-0">
           <span className="eyebrow">composition studio</span>
           <input
             value={name}
@@ -282,150 +294,156 @@ export function Composer({ id }: { id: string }) {
               setName(e.target.value);
               scheduleSave();
             }}
-            className="display-italic text-[1.9rem] leading-none bg-transparent outline-none border-b border-transparent focus:border-canvas-edge"
+            aria-label="composition name"
+            className="studio-title text-ink bg-transparent outline-none border-b border-transparent focus:border-canvas-edge min-w-0"
           />
         </div>
-        <div className="flex items-baseline gap-5 text-[0.82rem] text-muted">
-          {savingState === "saving" && (
-            <span className="display-italic">saving…</span>
-          )}
-          {savingState === "saved" && savedAt && (
-            <span className="display-italic">
-              saved {new Date(savedAt).toLocaleTimeString()}
-            </span>
-          )}
+        <div className="flex items-baseline gap-5 shrink-0">
+          <span className="studio-copy text-muted">
+            {savingState === "saving"
+              ? "saving…"
+              : savingState === "saved" && savedAt
+                ? `saved ${new Date(savedAt).toLocaleTimeString()}`
+                : ""}
+          </span>
           <button
             type="button"
             onClick={() => doSave(true)}
-            className="btn-ghost"
+            className="studio-action"
           >
             save
           </button>
           <button
             type="button"
             onClick={downloadPng}
-            className="btn-ghost"
+            className="studio-action"
             title="download a PNG of the composition"
           >
             download png
           </button>
-          <Link href="/" className="btn-ghost">
-            ← scrapbook
-          </Link>
         </div>
       </div>
-      <div className="rule mt-4 mb-6" />
 
-      <div className="grid grid-cols-[200px_1fr_220px] gap-6 items-start">
-        <aside>
-          <h2 className="eyebrow">tools</h2>
-          <div className="mt-3 flex flex-col gap-2">
-            <ToolButton
-              active={tool === "select"}
-              onClick={() => setTool("select")}
-            >
-              select / move
-            </ToolButton>
-            <ToolButton
-              active={tool === "draw"}
-              onClick={() => setTool("draw")}
-            >
-              draw
-            </ToolButton>
+      {/* tools */}
+      <div className="flex items-center gap-2 mt-3 flex-wrap">
+        <button
+          type="button"
+          className="tool-chip"
+          data-active={tool === "select"}
+          onClick={() => setTool("select")}
+        >
+          select / move
+        </button>
+        <button
+          type="button"
+          className="tool-chip"
+          data-active={tool === "draw"}
+          onClick={() => setTool("draw")}
+        >
+          draw
+        </button>
+        {tool === "draw" && (
+          <div className="flex items-center gap-2 ml-2">
+            {colors.map((col) => (
+              <button
+                type="button"
+                key={col}
+                onClick={() => setBrushColor(col)}
+                className="w-5 h-5 rounded-full border border-canvas-edge"
+                style={{
+                  background: col,
+                  outline:
+                    brushColor === col
+                      ? "2px solid var(--color-ochre-deep)"
+                      : "none",
+                  outlineOffset: 2,
+                }}
+                aria-label={`brush color ${col}`}
+              />
+            ))}
+            <label className="studio-copy text-muted flex items-center gap-2 ml-2">
+              size
+              <input
+                type="range"
+                min={1}
+                max={20}
+                value={brushSize}
+                onChange={(e) => setBrushSize(Number(e.target.value))}
+                className="w-24"
+              />
+            </label>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={clearCanvas}
+          className="tool-chip ml-auto hover:!text-terracotta hover:!border-terracotta"
+        >
+          clear
+        </button>
+      </div>
+
+      {/* canvas: a loose sheet laid across the spread */}
+      <div ref={stageRef} className="compose-stage mt-3">
+        <div className="mounted compose-sheet">
+          <canvas ref={canvasElRef} width={CANVAS_W} height={CANVAS_H} />
+        </div>
+      </div>
+
+      {/* sticker tray */}
+      <div className="mt-3">
+        <div className="flex items-baseline justify-between">
+          <h3 className="eyebrow">your stickers · tap to place</h3>
+          {onCreateStickers && (
             <button
               type="button"
-              onClick={clearCanvas}
-              className="btn-ghost text-left text-[0.85rem] text-muted hover:text-terracotta"
+              onClick={onCreateStickers}
+              className="studio-action studio-action--quiet"
             >
-              clear
+              create new stickers →
             </button>
-          </div>
-
-          {tool === "draw" && (
-            <div className="mt-6">
-              <h3 className="eyebrow">brush</h3>
-              <div className="mt-2 flex items-center gap-2">
-                {["#1c1812", "#a36f24", "#b8533a", "#6f7a5c", "#c89958"].map(
-                  (c) => (
-                    <button
-                      type="button"
-                      key={c}
-                      onClick={() => setBrushColor(c)}
-                      className="w-6 h-6 rounded-full border"
-                      style={{
-                        background: c,
-                        outline:
-                          brushColor === c
-                            ? "2px solid var(--color-ochre-deep)"
-                            : "none",
-                        outlineOffset: 2,
-                      }}
-                      aria-label={`brush color ${c}`}
-                    />
-                  ),
-                )}
-              </div>
-              <label className="mt-3 block text-[0.78rem] text-muted">
-                size
-                <input
-                  type="range"
-                  min={1}
-                  max={20}
-                  value={brushSize}
-                  onChange={(e) => setBrushSize(Number(e.target.value))}
-                  className="w-full"
-                />
-              </label>
+          )}
+        </div>
+        <div className="sticker-tray mt-1">
+          {stickers.length === 0 && (
+            <div className="studio-copy text-muted py-4">
+              no stickers yet — make some first, then come back to arrange
+              them.
             </div>
           )}
-        </aside>
-
-        <div className="flex justify-center">
-          <div
-            className="rounded-[2px] border border-canvas-edge"
-            style={{
-              boxShadow:
-                "0 1px 0 rgba(255,255,255,0.5) inset, 0 20px 40px -28px rgba(60,40,12,0.5)",
-            }}
-          >
-            <canvas
-              ref={canvasElRef}
-              width={CANVAS_W}
-              height={CANVAS_H}
-              className="block"
-            />
-          </div>
+          {stickers.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => addSticker(s)}
+              title={s.name}
+            >
+              <span className="sticker-cut">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={s.thumbDataUrl}
+                  alt={s.name}
+                  className="pointer-events-none"
+                  draggable={false}
+                />
+              </span>
+            </button>
+          ))}
         </div>
-
-        <aside>
-          <h2 className="eyebrow">stickers</h2>
-          <div className="mt-3">{stickerStrip}</div>
-        </aside>
       </div>
-    </main>
+    </div>
   );
-}
 
-function ToolButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`text-left text-[0.92rem] py-1 border-b ${
-        active
-          ? "border-ochre-deep text-ochre-deep display-italic"
-          : "border-canvas-edge text-ink-soft hover:text-ochre-deep"
-      }`}
-    >
-      {children}
-    </button>
+    <Book spread={spread} className="h-full">
+      <button
+        type="button"
+        onClick={onClose}
+        className="studio-close"
+        aria-label="close the composition studio"
+      >
+        ×
+      </button>
+    </Book>
   );
 }

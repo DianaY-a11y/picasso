@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import { liveQuery } from "dexie";
 import { useEffect, useState } from "react";
+import { Book } from "@/components/Book";
 import { getDb } from "@/lib/db";
 import type { Composition, Sticker } from "@/lib/types";
 
@@ -10,43 +11,45 @@ import type { Composition, Sticker } from "@/lib/types";
  * left page and their compositions on the right. Each page scrolls on its
  * own, like a little browser window.
  */
-export function Scrapbook() {
+export function Scrapbook({
+  onCreateStickers,
+  onCreateComposition,
+  onOpenComposition,
+}: {
+  onCreateStickers: () => void;
+  onCreateComposition: () => void;
+  onOpenComposition: (id: string) => void;
+}) {
   const [stickers, setStickers] = useState<Sticker[] | null>(null);
   const [comps, setComps] = useState<Composition[] | null>(null);
 
+  // Live queries: pages refill on their own as the studios save new work.
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const db = getDb();
-      const [s, c] = await Promise.all([
-        db.stickers.orderBy("createdAt").reverse().toArray(),
-        db.compositions.orderBy("updatedAt").reverse().toArray(),
-      ]);
-      if (cancelled) return;
-      setStickers(s);
-      setComps(c);
-    })();
+    const db = getDb();
+    const s = liveQuery(() =>
+      db.stickers.orderBy("createdAt").reverse().toArray(),
+    ).subscribe({ next: setStickers, error: () => setStickers([]) });
+    const c = liveQuery(() =>
+      db.compositions.orderBy("updatedAt").reverse().toArray(),
+    ).subscribe({ next: setComps, error: () => setComps([]) });
     return () => {
-      cancelled = true;
+      s.unsubscribe();
+      c.unsubscribe();
     };
   }, []);
 
   async function deleteSticker(id: string) {
     await getDb().stickers.delete(id);
-    setStickers((rows) => (rows ?? []).filter((r) => r.id !== id));
   }
 
   async function deleteComp(e: React.MouseEvent, id: string) {
     e.preventDefault();
     e.stopPropagation();
     await getDb().compositions.delete(id);
-    setComps((rows) => (rows ?? []).filter((r) => r.id !== id));
   }
 
-  return (
-    <div className="scrapbook" role="region" aria-label="your scrapbook">
-      {/* ——— left page: stickers ——— */}
-      <section className="scrapbook-page scrapbook-page--left">
+  const left = (
+      <section className="scrapbook-page">
         <header className="scrapbook-page__head">
           <h2 className="eyebrow">stickers</h2>
           <span className="display-italic text-muted">
@@ -69,13 +72,18 @@ export function Scrapbook() {
           )}
         </div>
 
-        <Link href="/upload" className="scrapbook-cta display-italic">
+        <button
+          type="button"
+          onClick={onCreateStickers}
+          className="scrapbook-cta display-italic"
+        >
           create new stickers&nbsp;→
-        </Link>
+        </button>
       </section>
+  );
 
-      {/* ——— right page: compositions ——— */}
-      <section className="scrapbook-page scrapbook-page--right">
+  const right = (
+      <section className="scrapbook-page">
         <header className="scrapbook-page__head">
           <h2 className="eyebrow">compositions</h2>
           <span className="display-italic text-muted">
@@ -97,7 +105,11 @@ export function Scrapbook() {
                   className="comp-print-wrap"
                   style={{ "--tilt": `${tilt(c.id, 2.2)}deg` } as React.CSSProperties}
                 >
-                  <Link href={`/compose/${c.id}`} className="comp-print">
+                  <button
+                    type="button"
+                    onClick={() => onOpenComposition(c.id)}
+                    className="comp-print w-full text-left"
+                  >
                     <span className="comp-print__tape" aria-hidden />
                     <span className="comp-print__img">
                       {c.thumbDataUrl ? (
@@ -110,7 +122,7 @@ export function Scrapbook() {
                     <span className="comp-print__name display-italic">
                       {c.name}
                     </span>
-                  </Link>
+                  </button>
                   <button
                     type="button"
                     onClick={(e) => deleteComp(e, c.id)}
@@ -125,10 +137,19 @@ export function Scrapbook() {
           )}
         </div>
 
-        <Link href="/compose/new" className="scrapbook-cta display-italic">
+        <button
+          type="button"
+          onClick={onCreateComposition}
+          className="scrapbook-cta display-italic"
+        >
           create new compositions&nbsp;→
-        </Link>
+        </button>
       </section>
+  );
+
+  return (
+    <div className="scrapbook-frame" role="region" aria-label="your scrapbook">
+      <Book left={left} right={right} className="scrapbook" ribbon />
     </div>
   );
 }

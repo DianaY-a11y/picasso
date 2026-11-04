@@ -13,8 +13,8 @@
   --color-terracotta: #b8533a;
   --color-sage: #6f7a5c;
 
-  --font-display: var(--font-cormorant);
-  --font-sans: var(--font-inter);
+  --font-display: var(--font-hanken);
+  --font-sans: var(--font-hanken);
 }
 
 :root {
@@ -29,7 +29,6 @@ body {
 
 body {
   font-family: var(--font-sans);
-  font-feature-settings: "ss01", "cv11";
   position: relative;
   min-height: 100vh;
 }
@@ -68,10 +67,12 @@ body::after {
   letter-spacing: -0.01em;
 }
 
+/* Historically an italic serif; the app now speaks in one plain sans. */
 .display-italic {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-weight: 400;
+  letter-spacing: -0.005em;
 }
 
 .eyebrow {
@@ -187,8 +188,151 @@ button:hover > .sticker-cut img {
 }
 
 /* ------------------------------------------------------------------ */
-/* Landing: black room, open scrapbook                                 */
+/* The book: a hand-built open notebook (no photo), used for the       */
+/* landing scrapbook and as the frame of both studio overlays.        */
 /* ------------------------------------------------------------------ */
+
+:root {
+  --page: #ede4cf;
+  --page-light: #f4ecda;
+  --page-edge: #d8cbad;
+  --cover: #141210;
+  --paper-noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.36  0 0 0 0 0.22  0 0 0 0.16 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --paper-fibers: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='520' height='520'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.0125 0.02' numOctaves='3' seed='7' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.55  0 0 0 0 0.44  0 0 0 0 0.27  0 0 0 0.6 -0.3'/></filter><rect width='100%' height='100%' filter='url(%23f)'/></svg>");
+  --leather: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='l'><feTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23l)'/></svg>");
+}
+
+.book {
+  position: relative;
+  border-radius: 2.2cqw;
+  padding: 1.3cqw 1.5cqw;
+  background-color: var(--cover);
+  background-image: var(--leather),
+    linear-gradient(160deg, #22201c 0%, #121110 45%, #0b0a09 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 2px 0 #050505,
+    0 40px 90px -30px rgba(0, 0, 0, 0.9);
+}
+
+/* Fixed-size books (overlays) still want cqw-based detailing. */
+.book-frame {
+  container-type: inline-size;
+}
+
+.book__spread {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 100%;
+  /* page stack peeking out at the top & bottom edges */
+  filter: drop-shadow(0 0.18cqw 0 #cdbf9f) drop-shadow(0 -0.12cqw 0 #e6dcc3);
+}
+
+.page {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  color: var(--color-ink);
+  background-color: var(--page);
+  background-image: var(--paper-noise), var(--paper-fibers),
+    radial-gradient(ellipse at 30% 20%, var(--page-light) 0%, transparent 60%);
+}
+
+.page--left {
+  border-radius: 1.2cqw 0.2cqw 0.2cqw 1.2cqw;
+  box-shadow:
+    -0.12cqw 0 0 var(--page-edge),
+    -0.24cqw 0 0 var(--page-light),
+    -0.36cqw 0 0 #cbbd9c,
+    -0.48cqw 0 0 #efe6d2;
+}
+.page--right {
+  border-radius: 0.2cqw 1.2cqw 1.2cqw 0.2cqw;
+  box-shadow:
+    0.12cqw 0 0 var(--page-edge),
+    0.24cqw 0 0 var(--page-light),
+    0.36cqw 0 0 #cbbd9c,
+    0.48cqw 0 0 #efe6d2;
+}
+
+/* Gutter: pages curve down into the spine; outer edges catch a little light. */
+.page::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.page--left::after {
+  background:
+    linear-gradient(to left, rgba(70, 50, 22, 0.34) 0%, rgba(70, 50, 22, 0.14) 2.5%, rgba(70, 50, 22, 0.04) 9%, transparent 16%),
+    linear-gradient(to right, rgba(255, 250, 238, 0.35) 0%, transparent 4%),
+    linear-gradient(to bottom, rgba(70, 50, 22, 0.06), transparent 6%, transparent 94%, rgba(70, 50, 22, 0.08));
+}
+.page--right::after {
+  background:
+    linear-gradient(to right, rgba(70, 50, 22, 0.34) 0%, rgba(70, 50, 22, 0.14) 2.5%, rgba(70, 50, 22, 0.04) 9%, transparent 16%),
+    linear-gradient(to left, rgba(255, 250, 238, 0.35) 0%, transparent 4%),
+    linear-gradient(to bottom, rgba(70, 50, 22, 0.06), transparent 6%, transparent 94%, rgba(70, 50, 22, 0.08));
+}
+
+/* Spine stitching */
+.book__spread::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: rgba(60, 42, 18, 0.45);
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* When one sheet spans both pages (composition studio) */
+.book__spread--single {
+  grid-template-columns: 1fr;
+}
+.page--spread {
+  border-radius: 1.2cqw;
+}
+/* the working sheet lies on top of the gutter, not under it */
+.page--spread::after {
+  z-index: 0;
+}
+.page--spread::after {
+  background:
+    linear-gradient(to right, transparent 44%, rgba(70, 50, 22, 0.1) 48.5%, rgba(70, 50, 22, 0.3) 50%, rgba(70, 50, 22, 0.1) 51.5%, transparent 56%),
+    linear-gradient(to bottom, rgba(70, 50, 22, 0.06), transparent 6%, transparent 94%, rgba(70, 50, 22, 0.08));
+}
+
+/* Ribbon bookmark */
+.book__ribbon {
+  position: absolute;
+  bottom: -2.6cqw;
+  left: calc(50% + 3cqw);
+  width: 1.3cqw;
+  height: 4.4cqw;
+  background: linear-gradient(to right, #7d2f22, #a1452f 50%, #7d2f22);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%);
+  z-index: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Landing                                                             */
+/* ------------------------------------------------------------------ */
+
+body:has(.landing) {
+  background: #000;
+}
+body:has(.landing)::before,
+body:has(.landing)::after {
+  display: none;
+}
 
 .landing {
   min-height: 100dvh;
@@ -197,12 +341,12 @@ button:hover > .sticker-cut img {
   display: flex;
   flex-direction: column;
   align-items: center;
-  position: relative;
 }
 
 .landing__mark {
   padding-top: 22px;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  letter-spacing: 0.42em;
   color: #e9dcbe;
   opacity: 0.85;
 }
@@ -213,38 +357,33 @@ button:hover > .sticker-cut img {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 0;
+  padding: 16px 0 28px;
 }
 
 .landing__foot {
   padding-bottom: 18px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #8a7a64;
 }
 
-.scrapbook {
-  position: relative;
-  width: min(1100px, 96vw, calc((100dvh - 110px) * 1.259));
-  aspect-ratio: 1050 / 834;
-  background: url("/scrapbook.jpg") center / 100% 100% no-repeat;
+.scrapbook-frame {
+  width: min(1180px, 95vw, calc((100dvh - 120px) * 1.32));
   container-type: inline-size;
-  z-index: 1;
+}
+.scrapbook {
+  aspect-ratio: 1.32;
 }
 
 .scrapbook-page {
-  position: absolute;
-  top: 8%;
-  bottom: 7%;
-  width: 36%;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-ink);
+  padding: 3.4cqw 3.6cqw 2.6cqw 3.8cqw;
+  position: relative;
+  z-index: 1;
 }
-.scrapbook-page--left {
-  left: 8.5%;
-}
-.scrapbook-page--right {
-  left: 55.5%;
+.page--right > .scrapbook-page {
+  padding: 3.4cqw 3.8cqw 2.6cqw 3.6cqw;
 }
 
 .scrapbook-page__head {
@@ -257,11 +396,11 @@ button:hover > .sticker-cut img {
   margin-bottom: 1.2cqw;
 }
 .scrapbook-page__head .eyebrow {
-  font-size: clamp(0.55rem, 1.05cqw, 0.75rem);
+  font-size: clamp(0.55rem, 1cqw, 0.75rem);
   color: var(--color-ink-soft);
 }
 .scrapbook-page__head .display-italic {
-  font-size: clamp(0.7rem, 1.45cqw, 1rem);
+  font-size: clamp(0.68rem, 1.25cqw, 0.95rem);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -279,6 +418,7 @@ button:hover > .sticker-cut img {
 }
 .scrapbook-scroll::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 .scrapbook-scroll::-webkit-scrollbar-thumb {
   background: rgba(138, 122, 100, 0.5);
@@ -291,8 +431,8 @@ button:hover > .sticker-cut img {
 .scrapbook-empty {
   margin-top: 6cqw;
   text-align: center;
-  font-size: clamp(0.8rem, 1.6cqw, 1.1rem);
-  line-height: 1.5;
+  font-size: clamp(0.78rem, 1.4cqw, 1rem);
+  line-height: 1.55;
   color: var(--color-muted);
   padding: 0 2cqw;
 }
@@ -300,15 +440,152 @@ button:hover > .sticker-cut img {
 .scrapbook-cta {
   align-self: center;
   margin-top: 1.4cqw;
-  font-size: clamp(0.85rem, 2cqw, 1.35rem);
+  font-size: clamp(0.82rem, 1.6cqw, 1.15rem);
   color: var(--color-ochre-deep);
   border-bottom: 1px solid currentColor;
-  line-height: 1.2;
+  line-height: 1.3;
   transition: color 160ms ease, transform 160ms ease;
 }
 .scrapbook-cta:hover {
   color: var(--color-terracotta);
   transform: translateY(-1px);
+}
+
+/* ------------------------------------------------------------------ */
+/* Studio overlays                                                     */
+/* ------------------------------------------------------------------ */
+
+.studio-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2dvh 2vw;
+  background: rgba(0, 0, 0, 0.66);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  animation: overlay-in 220ms ease both;
+}
+.studio-frame {
+  width: min(1320px, 96vw, calc(94dvh * 1.5));
+  animation: book-in 320ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.studio-frame > .book {
+  height: min(880px, 94dvh, calc(min(1320px, 96vw) / 1.5));
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes book-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+}
+
+.studio-close {
+  position: absolute;
+  top: 0.9cqw;
+  right: 1.1cqw;
+  z-index: 10;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--color-ink-soft);
+  background: rgba(250, 245, 233, 0.9);
+  border: 1px solid var(--color-canvas-edge);
+  transition: color 150ms ease, border-color 150ms ease;
+}
+.studio-close:hover {
+  color: var(--color-terracotta);
+  border-color: var(--color-terracotta);
+}
+
+.studio-page {
+  color: var(--color-ink-soft);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 2.8cqw 3cqw 2.4cqw;
+  position: relative;
+  z-index: 1;
+  min-height: 0;
+}
+
+.studio-title {
+  font-size: clamp(1.2rem, 2.3cqw, 1.9rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+/* No color here: unlayered rules would beat Tailwind's text-* utilities.
+   Copy inherits the page's ink-soft from .studio-page. */
+.studio-copy {
+  font-size: clamp(0.8rem, 1.15cqw, 0.95rem);
+  line-height: 1.6;
+}
+
+.studio-action {
+  font-size: clamp(0.88rem, 1.35cqw, 1.05rem);
+  color: var(--color-ochre-deep);
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 1px;
+  line-height: 1.3;
+  transition: color 150ms ease;
+}
+.studio-action:hover:not(:disabled) {
+  color: var(--color-terracotta);
+}
+.studio-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.studio-action--quiet {
+  color: var(--color-muted);
+  font-size: clamp(0.78rem, 1.1cqw, 0.9rem);
+}
+
+/* a loose mounted sheet laid on a page */
+.mounted {
+  background: #fbf7ec;
+  box-shadow:
+    0 1px 2px rgba(40, 28, 12, 0.18),
+    0 14px 26px -18px rgba(40, 28, 12, 0.55);
+}
+
+/* corner photo mounts */
+.corners {
+  position: relative;
+}
+.corners::before,
+.corners::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: #2a2520;
+  z-index: 2;
+  pointer-events: none;
+}
+.corners::before {
+  top: -5px;
+  left: -5px;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+.corners::after {
+  bottom: -5px;
+  right: -5px;
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
 }
 
 /* stickers sheet */
@@ -428,7 +705,7 @@ button:hover > .sticker-cut img {
 }
 .steps li .n {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: 1rem;
   letter-spacing: 0;
 }
@@ -439,11 +716,62 @@ button:hover > .sticker-cut img {
   color: var(--color-ink-soft);
 }
 
-/* The landing is a dark room: no paper grain or warm vignette over it. */
-body:has(.landing) {
-  background: #000;
+.steps--stack {
+  flex-direction: column;
+  gap: 0.6rem;
 }
-body:has(.landing)::before,
-body:has(.landing)::after {
+
+.book__spread--single::after {
   display: none;
+}
+
+/* composition studio */
+.compose-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.compose-sheet canvas {
+  display: block;
+}
+.sticker-tray {
+  display: flex;
+  gap: 1cqw;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.6cqw 0.4cqw 0.8cqw;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(138, 122, 100, 0.55) transparent;
+}
+.sticker-tray > button {
+  flex: 0 0 auto;
+  width: 6.4cqw;
+  height: 6.4cqw;
+  padding: 0.5cqw;
+  cursor: grab;
+}
+.tool-chip {
+  font-size: clamp(0.78rem, 1.05cqw, 0.9rem);
+  padding: 0.25em 0.8em;
+  border-radius: 999px;
+  border: 1px solid var(--color-canvas-edge);
+  color: var(--color-ink-soft);
+  background: rgba(251, 247, 236, 0.6);
+  transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+}
+.tool-chip:hover {
+  color: var(--color-ochre-deep);
+  border-color: var(--color-ochre-deep);
+}
+.tool-chip[data-active="true"] {
+  color: #fbf7ec;
+  background: var(--color-ink-soft);
+  border-color: var(--color-ink-soft);
+}
+
+.page .tile-dashed {
+  border-color: rgba(138, 122, 100, 0.55);
+  background: rgba(251, 247, 236, 0.35);
 }
