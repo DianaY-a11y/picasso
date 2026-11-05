@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
-import { Instrument_Sans } from "next/font/google";
+import { Cinzel } from "next/font/google";
 import "./globals.css";
 
-const instrumentSans = Instrument_Sans({
-  variable: "--font-app",
+// Copperplate Gothic Bold is a licensed font, so it isn't bundled: visitors
+// who have it installed (Windows/Office: "Copperplate Gothic Bold"; macOS:
+// "Copperplate") see it, everyone else gets Cinzel, the closest free match.
+const cinzel = Cinzel({
+  variable: "--font-fallback",
   subsets: ["latin"],
+  weight: ["600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -19,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={instrumentSans.variable} suppressHydrationWarning>
+    <html lang="en" className={cinzel.variable} suppressHydrationWarning>
       <body>{children}</body>
     </html>
   );

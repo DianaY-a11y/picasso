@@ -13,8 +13,10 @@
   --color-terracotta: #b8533a;
   --color-sage: #6f7a5c;
 
-  --font-display: var(--font-app);
-  --font-sans: var(--font-app);
+  --font-display: "Copperplate Gothic Bold", "Copperplate Gothic", Copperplate,
+    var(--font-fallback), serif;
+  --font-sans: "Copperplate Gothic Bold", "Copperplate Gothic", Copperplate,
+    var(--font-fallback), serif;
 }
 
 :root {
@@ -1277,4 +1279,23 @@ body:has(.landing)::after {
     #e8ddc5 100%
   );
   filter: drop-shadow(-3px -3px 5px rgba(0, 0, 0, 0.55));
+}
+
+/* Copperplate is a bold, wide, all-caps face: one weight everywhere, a
+   touch of tracking, and inputs/buttons inherit it too. */
+body,
+button,
+input,
+textarea,
+select {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.display,
+.display-italic,
+.studio-title,
+.cover-text,
+.studio-copy {
+  font-weight: 700;
 }
