@@ -15,10 +15,13 @@ export function Scrapbook({
   onCreateStickers,
   onCreateComposition,
   onOpenComposition,
+  onTurnBack,
 }: {
   onCreateStickers: () => void;
   onCreateComposition: () => void;
   onOpenComposition: (id: string) => void;
+  /** Turn back to the title page via the curled bottom-left corner. */
+  onTurnBack?: () => void;
 }) {
   const [stickers, setStickers] = useState<Sticker[] | null>(null);
   const [comps, setComps] = useState<Composition[] | null>(null);
@@ -149,7 +152,14 @@ export function Scrapbook({
 
   return (
     <div className="scrapbook-frame" role="region" aria-label="your scrapbook">
-      <Book left={left} right={right} className="scrapbook" ribbon />
+      <Book
+        left={left}
+        right={right}
+        className="scrapbook"
+        ribbon
+        onTurnBack={onTurnBack}
+        turnBackLabel="back to the title page"
+      />
     </div>
   );
 }

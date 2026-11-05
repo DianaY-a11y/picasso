@@ -114,6 +114,7 @@ export function ScrapbookHome() {
               onCreateStickers={() => open({ kind: "stickers" })}
               onCreateComposition={() => open({ kind: "compose", id: newId() })}
               onOpenComposition={(id) => open({ kind: "compose", id })}
+              onTurnBack={backToCover}
             />
           )}
         </main>
