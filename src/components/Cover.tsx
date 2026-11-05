@@ -9,7 +9,6 @@ import { useState } from "react";
 const COVER_ART: { src: string; alt: string; credit?: string } | null = {
   src: "/cover-art.webp",
   alt: "Pablo Picasso, Femme au béret et à la robe quadrillée (1937), cut out as a sticker",
-  credit: "Pablo Picasso, Femme au béret et à la robe quadrillée, 1937 · © Succession Picasso",
 };
 
 /**

@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import { Hanken_Grotesk } from "next/font/google";
+import { Instrument_Sans } from "next/font/google";
 import "./globals.css";
 
-const hanken = Hanken_Grotesk({
-  variable: "--font-hanken",
+const instrumentSans = Instrument_Sans({
+  variable: "--font-app",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -20,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={hanken.variable} suppressHydrationWarning>
+    <html lang="en" className={instrumentSans.variable} suppressHydrationWarning>
       <body>{children}</body>
     </html>
   );

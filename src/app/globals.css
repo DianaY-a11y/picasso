@@ -13,8 +13,8 @@
   --color-terracotta: #b8533a;
   --color-sage: #6f7a5c;
 
-  --font-display: var(--font-hanken);
-  --font-sans: var(--font-hanken);
+  --font-display: var(--font-app);
+  --font-sans: var(--font-app);
 }
 
 :root {
@@ -1066,88 +1066,7 @@ body:has(.landing)::after {
   }
 }
 
-/* temporary /fonts comparison page */
-body:has(.fonts-page) {
-  background: #000;
-}
-body:has(.fonts-page)::before,
-body:has(.fonts-page)::after {
-  display: none;
-}
-.fonts-page {
-  min-height: 100dvh;
-  padding: 40px 4vw 80px;
-  color: #e9dcbe;
-}
-.fonts-title {
-  font-size: 1.4rem;
-}
-.fonts-intro {
-  margin-top: 8px;
-  color: #8a7a64;
-  max-width: 52em;
-  font-size: 0.9rem;
-}
-.fonts-grid {
-  margin-top: 28px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
-  gap: 24px;
-}
-.fonts-card {
-  border-radius: 10px;
-}
-.fonts-card__inner {
-  position: relative;
-  z-index: 1;
-  padding: 26px 30px 24px;
-  color: var(--color-ink);
-}
-.fonts-tag {
-  font-size: 0.72rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--color-ink-soft);
-}
-.fonts-mood {
-  margin-top: 4px;
-  font-size: 0.82rem;
-  color: var(--color-muted);
-}
-.fonts-mark {
-  margin-top: 22px;
-  font-size: 0.95rem;
-  letter-spacing: 0.45em;
-}
-.fonts-quote {
-  margin-top: 12px;
-  font-size: 1.9rem;
-  line-height: 1.15;
-}
-.fonts-body {
-  margin-top: 12px;
-  font-size: 0.95rem;
-  line-height: 1.6;
-  color: var(--color-ink-soft);
-}
-.fonts-row {
-  margin-top: 18px;
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
-  border-top: 1px solid rgba(138, 122, 100, 0.35);
-  padding-top: 12px;
-}
-.fonts-note {
-  font-size: 1.05rem;
-  color: var(--color-muted);
-}
-.fonts-cta {
-  font-size: 0.95rem;
-  color: var(--color-ochre-deep);
-  border-bottom: 1px solid currentColor;
-}
+
 /* without art, the quote sits in the middle of the page */
 .cover-rule + .cover-text {
   margin-block: auto;
