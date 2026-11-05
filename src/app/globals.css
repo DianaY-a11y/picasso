@@ -1155,3 +1155,18 @@ body:has(.fonts-page)::after {
 .cover-content {
   padding-bottom: 15cqw;
 }
+/* one paragraph, one size */
+.cover-text {
+  font-size: clamp(0.82rem, 2.6cqw, 1rem);
+  line-height: 1.6;
+  color: var(--color-ink-soft);
+}
+.cover-art {
+  margin-top: 5cqw;
+}
+.cover-art + .cover-text {
+  margin-top: 5cqw;
+}
+.cover-content {
+  padding-bottom: 11cqw;
+}

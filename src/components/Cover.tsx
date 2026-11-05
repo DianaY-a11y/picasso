@@ -6,7 +6,11 @@ import { useState } from "react";
  * Optional art for the title page (a cut-out with a transparent background,
  * placed in /public). Left empty until we have an image we're cleared to use.
  */
-const COVER_ART: { src: string; alt: string; credit?: string } | null = null;
+const COVER_ART: { src: string; alt: string; credit?: string } | null = {
+  src: "/cover-art.webp",
+  alt: "Pablo Picasso, Femme au béret et à la robe quadrillée (1937), cut out as a sticker",
+  credit: "Pablo Picasso, Femme au béret et à la robe quadrillée, 1937 · © Succession Picasso",
+};
 
 /**
  * The title page: a single sheet on the open book with the studio's idea on
@@ -37,7 +41,6 @@ export function Cover({ onTurn }: { onTurn: () => void }) {
             <div className="cover-content">
               <header className="cover-head">
                 <div className="cover-mark">P I C A S S O</div>
-                <div className="cover-sub">a studio for making</div>
               </header>
 
               {COVER_ART ? (
@@ -54,19 +57,13 @@ export function Cover({ onTurn }: { onTurn: () => void }) {
                 <div className="cover-rule" aria-hidden />
               )}
 
-              <div className="cover-text">
-                <p className="cover-lead">Picasso once said:</p>
-                <blockquote className="cover-quote">
-                  &ldquo;I paint objects as I think them, not as I see
-                  them.&rdquo;
-                </blockquote>
-                <p className="cover-body">
-                  This reflects a deeper idea that existence precedes essence,
-                  meaning we create our own meaning and identity. This studio
-                  is a small place for making art as we think it, not just as
-                  we see it.
-                </p>
-              </div>
+              <p className="cover-text">
+                Picasso once said: &ldquo;I paint objects as I think them, not
+                as I see them.&rdquo; This reflects a deeper idea that
+                existence precedes essence, meaning we create our own meaning
+                and identity. This studio is a small place for making art as we
+                think it, not just as we see it.
+              </p>
             </div>
           </div>
 
@@ -80,7 +77,6 @@ export function Cover({ onTurn }: { onTurn: () => void }) {
             }}
             aria-label="turn the page to open your scrapbook"
           >
-            <span>turn the page</span>
           </button>
         </div>
       </div>
