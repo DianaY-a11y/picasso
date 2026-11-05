@@ -37,6 +37,7 @@ export function Cover({ onTurn }: { onTurn: () => void }) {
           role="presentation"
         >
           <div className="page cover-page">
+            <span className="cover-band" aria-hidden />
             <div className="cover-content">
               <header className="cover-head">
                 <div className="cover-mark">P I C A S S O</div>

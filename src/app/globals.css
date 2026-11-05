@@ -1187,3 +1187,94 @@ body:has(.landing)::after {
     animation-duration: 1ms;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Title page as a closed, Moleskine-style leather cover               */
+/* ------------------------------------------------------------------ */
+.cover-book {
+  background: none;
+  box-shadow: none;
+}
+/* the page block peeking out behind the cover */
+.cover-under {
+  filter: none;
+  background-color: #e9dfc8;
+  box-shadow:
+    0.3cqw 0.3cqw 0 #d6c9aa,
+    0.6cqw 0.6cqw 0 #efe6d2,
+    0.9cqw 0.9cqw 0 #cbbd9c,
+    0 30px 60px -20px rgba(0, 0, 0, 0.8);
+}
+.cover-sheet {
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.6))
+    drop-shadow(0 24px 40px rgba(0, 0, 0, 0.55));
+}
+.cover-page {
+  border-radius: 1.4cqw 3.2cqw 3.2cqw 1.4cqw;
+  background-color: #141210;
+  background-image:
+    radial-gradient(ellipse at 32% 18%, rgba(255, 245, 225, 0.07) 0%, transparent 55%),
+    linear-gradient(160deg, #1d1a17 0%, #121110 50%, #0c0b0a 100%);
+}
+/* pebbled leather grain + hinge groove by the spine + soft edge wear */
+.cover-page::after {
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch' result='n'/><feDiffuseLighting in='n' lighting-color='%23ffffff' surfaceScale='1.6'><feDistantLight azimuth='225' elevation='58'/></feDiffuseLighting><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.2 0.2 0.2 0 -0.47'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>"),
+    linear-gradient(
+      to right,
+      rgba(0, 0, 0, 0.55) 0%,
+      rgba(255, 255, 255, 0.05) 1.6%,
+      transparent 3%,
+      transparent 5.6%,
+      rgba(0, 0, 0, 0.45) 6.2%,
+      rgba(255, 255, 255, 0.06) 6.8%,
+      transparent 8%
+    ),
+    radial-gradient(ellipse at center, transparent 62%, rgba(0, 0, 0, 0.35) 100%);
+  mix-blend-mode: normal;
+}
+.cover-content {
+  color: #e9dcbe;
+}
+.cover-mark {
+  color: #d9cba9;
+  text-shadow:
+    0 -1px 0 rgba(0, 0, 0, 0.7),
+    0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.cover-text {
+  color: #c8b996;
+}
+/* elastic closure band */
+.cover-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 7%;
+  width: 2.4%;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    #070606 0%,
+    #1b1917 30%,
+    #24211e 50%,
+    #161412 75%,
+    #050505 100%
+  );
+  box-shadow:
+    -2px 0 3px rgba(0, 0, 0, 0.55),
+    2px 0 3px rgba(0, 0, 0, 0.55);
+}
+/* the back of the lifted corner is the cream endpaper */
+.cover-curl {
+  background: linear-gradient(
+    315deg,
+    transparent 50%,
+    #bfb191 50%,
+    #ddd1b5 56%,
+    #f3ebda 72%,
+    #e8ddc5 100%
+  );
+  filter: drop-shadow(-3px -3px 5px rgba(0, 0, 0, 0.55));
+}
