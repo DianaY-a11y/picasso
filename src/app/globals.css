@@ -833,3 +833,325 @@ body:has(.landing)::after {
   inset: 0;
   height: auto;
 }
+
+/* ------------------------------------------------------------------ */
+/* Title page (cover) with a curling corner                            */
+/* ------------------------------------------------------------------ */
+
+@property --curl {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 30px;
+}
+
+.cover-frame {
+  width: min(600px, 92vw, calc((100dvh - 120px) * 0.76));
+  container-type: inline-size;
+  animation: book-in 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.cover-book {
+  position: relative;
+  aspect-ratio: 0.76;
+  padding: 2.6cqw 3cqw 2.6cqw 2.2cqw;
+  border-radius: 3.4cqw;
+  perspective: 2400px;
+}
+.cover-under,
+.cover-sheet {
+  position: absolute;
+  inset: 2.6cqw 3cqw 2.6cqw 2.2cqw;
+}
+.cover-under {
+  border-radius: 0.4cqw 2cqw 2cqw 0.4cqw;
+  filter: brightness(0.93);
+  box-shadow:
+    0.24cqw 0 0 var(--page-edge),
+    0.48cqw 0 0 var(--page-light),
+    0.72cqw 0 0 #cbbd9c;
+}
+
+.cover-sheet {
+  --curl: 30px;
+  cursor: pointer;
+  transform-origin: left center;
+  animation: curl-idle 3.6s ease-in-out 1.2s infinite;
+  transition: --curl 320ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+}
+.cover-sheet:hover {
+  animation: none;
+  --curl: 72px;
+}
+.cover-sheet.is-turning {
+  animation: page-turn 700ms cubic-bezier(0.45, 0, 0.2, 1) forwards;
+  pointer-events: none;
+}
+@keyframes curl-idle {
+  0%,
+  62%,
+  100% {
+    --curl: 30px;
+  }
+  78% {
+    --curl: 54px;
+  }
+}
+@keyframes page-turn {
+  0% {
+    --curl: 72px;
+    transform: rotateY(0deg);
+  }
+  100% {
+    --curl: 140px;
+    transform: rotateY(-115deg);
+    opacity: 0;
+  }
+}
+
+.cover-page {
+  position: absolute;
+  inset: 0;
+  border-radius: 0.4cqw 2cqw 2cqw 0.4cqw;
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--curl)),
+    calc(100% - var(--curl)) 100%,
+    0 100%
+  );
+}
+/* spine-side shading on the single page */
+.cover-page::after {
+  background:
+    linear-gradient(to right, rgba(70, 50, 22, 0.28) 0%, rgba(70, 50, 22, 0.08) 3%, transparent 10%),
+    linear-gradient(to bottom, rgba(70, 50, 22, 0.05), transparent 6%, transparent 94%, rgba(70, 50, 22, 0.07));
+}
+
+/* the lifted flap: the cut-away corner reflected over the fold line */
+.cover-curl {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: var(--curl);
+  height: var(--curl);
+  pointer-events: none;
+  background: linear-gradient(
+    315deg,
+    transparent 50%,
+    #cbbd9c 50%,
+    #e4d9bf 56%,
+    #f7f0e0 72%,
+    #efe5cf 100%
+  );
+  border-top-left-radius: 14%;
+  filter: drop-shadow(-3px -3px 4px rgba(40, 26, 8, 0.28));
+}
+
+.cover-turn {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 34%;
+  height: 22%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 0 calc(var(--curl) + 1.2cqw) 1.6cqw 0;
+  background: transparent;
+  z-index: 5;
+}
+.cover-turn span {
+  font-size: clamp(0.72rem, 2.2cqw, 0.9rem);
+  letter-spacing: 0.02em;
+  color: var(--color-ochre-deep);
+  border-bottom: 1px solid currentColor;
+  opacity: 0.85;
+  transition: opacity 200ms ease;
+}
+.cover-sheet:hover .cover-turn span {
+  opacity: 1;
+}
+
+.cover-content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 8cqw 8.5cqw 9cqw 9.5cqw;
+  color: var(--color-ink);
+}
+.cover-head {
+  text-align: center;
+}
+.cover-mark {
+  font-size: clamp(0.85rem, 3cqw, 1.15rem);
+  letter-spacing: 0.5em;
+  margin-right: -0.5em;
+}
+.cover-sub {
+  margin-top: 1.2cqw;
+  font-size: clamp(0.7rem, 2.1cqw, 0.85rem);
+  color: var(--color-muted);
+}
+.cover-rule {
+  margin: 7cqw auto 0;
+  width: 14cqw;
+  height: 1px;
+  background: rgba(138, 122, 100, 0.55);
+}
+.cover-art {
+  flex: 1;
+  min-height: 0;
+  margin: 4cqw 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.cover-art .sticker-cut {
+  --edge: 4px;
+  height: 100%;
+  transform: rotate(-2deg);
+}
+.cover-credit {
+  margin-top: 1cqw;
+  font-size: 0.68rem;
+  color: var(--color-muted);
+}
+.cover-text {
+  margin-top: auto;
+}
+.cover-art + .cover-text {
+  margin-top: 4cqw;
+}
+.cover-lead {
+  font-size: clamp(0.75rem, 2.3cqw, 0.92rem);
+  color: var(--color-muted);
+}
+.cover-quote {
+  margin-top: 1.4cqw;
+  font-size: clamp(1.25rem, 5.4cqw, 2.1rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+.cover-body {
+  margin-top: 3.4cqw;
+  font-size: clamp(0.8rem, 2.5cqw, 0.98rem);
+  line-height: 1.6;
+  color: var(--color-ink-soft);
+  max-width: 34em;
+}
+
+.landing__mark-btn {
+  cursor: pointer;
+  background: none;
+  color: inherit;
+  letter-spacing: inherit;
+}
+.landing__mark-btn:hover {
+  opacity: 1;
+}
+.landing__stage > .scrapbook-frame {
+  animation: book-in 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cover-sheet {
+    animation: none;
+  }
+  .cover-sheet.is-turning {
+    animation-duration: 1ms;
+  }
+}
+
+/* temporary /fonts comparison page */
+body:has(.fonts-page) {
+  background: #000;
+}
+body:has(.fonts-page)::before,
+body:has(.fonts-page)::after {
+  display: none;
+}
+.fonts-page {
+  min-height: 100dvh;
+  padding: 40px 4vw 80px;
+  color: #e9dcbe;
+}
+.fonts-title {
+  font-size: 1.4rem;
+}
+.fonts-intro {
+  margin-top: 8px;
+  color: #8a7a64;
+  max-width: 52em;
+  font-size: 0.9rem;
+}
+.fonts-grid {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 24px;
+}
+.fonts-card {
+  border-radius: 10px;
+}
+.fonts-card__inner {
+  position: relative;
+  z-index: 1;
+  padding: 26px 30px 24px;
+  color: var(--color-ink);
+}
+.fonts-tag {
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+.fonts-mood {
+  margin-top: 4px;
+  font-size: 0.82rem;
+  color: var(--color-muted);
+}
+.fonts-mark {
+  margin-top: 22px;
+  font-size: 0.95rem;
+  letter-spacing: 0.45em;
+}
+.fonts-quote {
+  margin-top: 12px;
+  font-size: 1.9rem;
+  line-height: 1.15;
+}
+.fonts-body {
+  margin-top: 12px;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--color-ink-soft);
+}
+.fonts-row {
+  margin-top: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  border-top: 1px solid rgba(138, 122, 100, 0.35);
+  padding-top: 12px;
+}
+.fonts-note {
+  font-size: 1.05rem;
+  color: var(--color-muted);
+}
+.fonts-cta {
+  font-size: 0.95rem;
+  color: var(--color-ochre-deep);
+  border-bottom: 1px solid currentColor;
+}
+/* without art, the quote sits in the middle of the page */
+.cover-rule + .cover-text {
+  margin-block: auto;
+}
+.cover-content {
+  padding-bottom: 15cqw;
+}
