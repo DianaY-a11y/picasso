@@ -4,18 +4,19 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 /**
- * Image → 3D with Stability AI's Stable Fast 3D.
+ * Image → 3D with Stability AI's SPAR3D (Stable Point Aware 3D).
  *
- * Stable Fast 3D runs on Stability's always-on servers and answers in a few
- * seconds with the finished GLB, so there is no job to poll and no cold
- * start. The GLB is streamed straight through (streamed responses are not
+ * SPAR3D runs on Stability's always-on servers and answers in a few seconds
+ * with the finished GLB, so there is no job to poll and no cold start. It is
+ * Stable Fast 3D plus a point-cloud stage that guesses the unseen back of the
+ * object better, at 4 credits a model instead of 10. The GLB is streamed straight through (streamed responses are not
  * subject to Vercel's 4.5 MB buffered-body cap).
  *
  *  POST (multipart "image") → model/gltf-binary, or { ok:false, reason, message }
  */
 
-const ENDPOINT = "https://api.stability.ai/v2beta/3d/stable-fast-3d";
-const MODEL = "stability/stable-fast-3d";
+const ENDPOINT = "https://api.stability.ai/v2beta/3d/stable-point-aware-3d";
+const MODEL = "stability/stable-point-aware-3d";
 
 const NO_KEY_MESSAGE =
   "STABILITY_API_KEY is not set for this deployment. In Vercel, add it under Settings → Environment Variables (Production and Preview) and redeploy.";
@@ -49,7 +50,6 @@ export async function POST(req: NextRequest) {
   const form = new FormData();
   form.append("image", file, "image.png");
   form.append("texture_resolution", "1024");
-  form.append("foreground_ratio", "0.85");
   form.append("remesh", "none");
 
   let upstream: Response;
