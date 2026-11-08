@@ -19,9 +19,12 @@ export const maxDuration = 60;
  *  GET   ?file=<delivery url> → streams the GLB (CORS fallback)
  */
 
+// Hunyuan3D 2.1 runs on Replicate's own GPUs. Hunyuan 3D 3.1 on Replicate
+// relays to Tencent Cloud, whose capacity errors ("ResourceInsufficient")
+// fail the whole job. Override with REPLICATE_IMAGE_TO_3D_MODEL.
 const REPLICATE_MODEL =
   process.env.REPLICATE_IMAGE_TO_3D_MODEL ??
-  "tencent/hunyuan-3d-3.1:a2838628b41a2e0ee2eb19b3ea98a40d75f8d7639bf5a1ddd37ea299bb334854";
+  "ndreca/hunyuan3d-2.1:440550ccc51ea571e41adf00fb5804b7ac2e2b3e74db56167dbda797fe7611dc";
 
 function buildInput(model: string, dataUrl: string): Record<string, unknown> {
   const slug = model.split(":")[0];
@@ -42,7 +45,19 @@ function buildInput(model: string, dataUrl: string): Record<string, unknown> {
       slat_guidance_strength: 3,
     };
   }
-  // Default: tencent/hunyuan-3d-3.1 shape.
+  if (slug === "ndreca/hunyuan3d-2.1") {
+    return {
+      image: dataUrl,
+      steps: 30,
+      guidance_scale: 7.5,
+      max_facenum: 40000,
+      octree_resolution: 256,
+      remove_background: true,
+      generate_texture: true,
+      seed: Math.floor(Math.random() * 1_000_000),
+    };
+  }
+  // tencent/hunyuan-3d-3.1 shape.
   return {
     image: dataUrl,
     enable_pbr: true,
