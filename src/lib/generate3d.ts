@@ -1,6 +1,6 @@
 /**
- * Client half of image → 3D. See src/app/api/generate-model/route.ts for why
- * this is start-then-poll and why the GLB is downloaded directly.
+ * Client half of image → 3D. The server (src/app/api/generate-model/route.ts)
+ * answers the one request with the finished GLB.
  */
 
 export class GenerateError extends Error {
@@ -63,60 +63,25 @@ export async function generateModel(
     onStatus,
     signal,
   }: { onStatus?: (s: string) => void; signal?: AbortSignal } = {},
-): Promise<{ glb: Blob; model: string }> {
+): Promise<{ glb: Blob; model: string; provider: string }> {
   const fd = new FormData();
   fd.append("image", await prepareImage(image), "image.png");
 
-  const start = await fetch("/api/generate-model", {
+  onStatus?.("processing");
+  const res = await fetch("/api/generate-model", {
     method: "POST",
     body: fd,
     signal,
   });
-  if (!start.ok) throw await readError(start);
-  const { id, model } = (await start.json()) as { id: string; model: string };
-
-  // Poll. Hunyuan usually takes 1–4 minutes; give it up to 10.
-  const deadline = Date.now() + 10 * 60_000;
-  let modelUrl: string | null = null;
-  while (Date.now() < deadline) {
-    await new Promise((r) => setTimeout(r, 3000));
-    if (signal?.aborted) throw new GenerateError("aborted", "Cancelled.");
-    const res = await fetch(`/api/generate-model?id=${encodeURIComponent(id)}`, {
-      signal,
-      cache: "no-store",
-    });
-    if (!res.ok) throw await readError(res);
-    const s = (await res.json()) as {
-      status: string;
-      modelUrl?: string;
-      error?: string;
-    };
-    if (s.status === "succeeded" && s.modelUrl) {
-      modelUrl = s.modelUrl;
-      break;
-    }
-    if (s.status === "failed") {
-      throw new GenerateError("replicate_failed", s.error ?? "Generation failed.");
-    }
-    onStatus?.(s.status);
+  if (!res.ok) throw await readError(res);
+  if (!res.headers.get("Content-Type")?.includes("gltf")) {
+    throw new GenerateError("bad_response", "The server didn't send back a 3D file.");
   }
-  if (!modelUrl) throw new GenerateError("timeout", "Generation took too long.");
-
   onStatus?.("downloading");
-  let glb: Blob | null = null;
-  try {
-    const direct = await fetch(modelUrl, { signal });
-    if (direct.ok) glb = await direct.blob();
-  } catch {
-    // probably CORS — fall through to the streaming proxy
-  }
-  if (!glb) {
-    const proxied = await fetch(
-      `/api/generate-model?file=${encodeURIComponent(modelUrl)}`,
-      { signal },
-    );
-    if (!proxied.ok) throw await readError(proxied);
-    glb = await proxied.blob();
-  }
-  return { glb, model };
+  const glb = await res.blob();
+  return {
+    glb,
+    model: res.headers.get("X-Picasso-Model") ?? "unknown",
+    provider: res.headers.get("X-Picasso-Provider") ?? "unknown",
+  };
 }

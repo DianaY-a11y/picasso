@@ -12,10 +12,10 @@ export type ModelAsset = {
   id: ID;
   sourceImageId: ID;
   createdAt: number;
-  // GLB / mesh blob fetched from Replicate
+  // GLB / mesh blob from the 3D provider
   meshBlob: Blob;
   // Provider info for debugging / regeneration
-  provider: "replicate";
+  provider: string;
   modelVersion: string;
 };
 

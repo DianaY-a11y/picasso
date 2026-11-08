@@ -119,7 +119,7 @@ export function StickerStation({
     const ac = new AbortController();
     abortRef.current = ac;
     try {
-      const { glb, model } = await generateModel(file, {
+      const { glb, model, provider } = await generateModel(file, {
         signal: ac.signal,
         onStatus: setGenStatus,
       });
@@ -129,7 +129,7 @@ export function StickerStation({
         sourceImageId: sId,
         createdAt: Date.now(),
         meshBlob: glb,
-        provider: "replicate",
+        provider,
         modelVersion: model,
       });
       setModelAssetId(mId);
@@ -213,11 +213,7 @@ export function StickerStation({
         : "give it a body";
 
   const genLabel =
-    genStatus === "downloading"
-      ? "bringing the body home…"
-      : genStatus === "processing"
-        ? "shaping a body… this can take a few minutes"
-        : "waking the sculptor…";
+    genStatus === "downloading" ? "bringing the body home…" : "shaping a body…";
 
   /* Everything sits on one loose sheet laid across the open book, like the
      composition studio: header + steps above, the work sheet in the middle,
