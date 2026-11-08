@@ -1299,3 +1299,241 @@ select {
 .studio-copy {
   font-weight: 700;
 }
+
+/* ------------------------------------------------------------------ */
+/* Phones                                                              */
+/* The desktop book is a landscape spread sized off its own width     */
+/* (cqw), which on a portrait phone shrinks everything to a strip.    */
+/* Here the scrapbook's two pages stack into one scrolling column and */
+/* the studios become full-screen single pages, with rem-based type.  */
+/* ------------------------------------------------------------------ */
+@media (max-width: 700px) {
+  /* --- the open scrapbook --- */
+  .landing__stage {
+    align-items: flex-start;
+    padding: 12px 0 20px;
+  }
+  .scrapbook-frame {
+    width: calc(100vw - 20px);
+  }
+  .scrapbook {
+    aspect-ratio: auto;
+    border-radius: 16px;
+    padding: 8px;
+  }
+  .scrapbook .book__spread {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    height: auto;
+  }
+  .scrapbook .book__spread::after,
+  .scrapbook .book__under,
+  .scrapbook .page-curl-flap,
+  .scrapbook .page-curl-hit,
+  .book__ribbon {
+    display: none;
+  }
+  .scrapbook .page--left,
+  .scrapbook .page--right {
+    border-radius: 10px;
+    box-shadow: 0 2px 0 var(--page-edge), 0 4px 0 #cbbd9c;
+    clip-path: none;
+    animation: none;
+    min-height: 58dvh;
+  }
+  .scrapbook .page--left::after,
+  .scrapbook .page--right::after {
+    background: linear-gradient(to bottom, rgba(70, 50, 22, 0.06), transparent 5%, transparent 95%, rgba(70, 50, 22, 0.08));
+  }
+  .scrapbook-page,
+  .page--right > .scrapbook-page {
+    height: auto;
+    min-height: 58dvh;
+    padding: 22px 18px 20px;
+  }
+  .scrapbook-page__head {
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+  }
+  .scrapbook-page__head .eyebrow {
+    font-size: 0.78rem;
+  }
+  .scrapbook-page__head .display-italic {
+    font-size: 0.9rem;
+    white-space: normal;
+  }
+  .scrapbook-scroll {
+    overflow: visible;
+    margin-right: 0;
+    padding: 8px 2px 12px;
+  }
+  .scrapbook-empty {
+    margin-top: 18vh;
+    font-size: 1rem;
+    padding: 0 8px;
+  }
+  .scrapbook-cta {
+    margin-top: 14px;
+    font-size: 1.05rem;
+    padding: 8px 0 4px;
+  }
+  .sticker-sheet {
+    gap: 14px 12px;
+  }
+  .sticker-cut-wrap {
+    padding: 6px;
+  }
+  .comp-sheet {
+    gap: 22px 16px;
+    padding-top: 10px;
+  }
+  .comp-print {
+    padding: 6px 6px 4px;
+  }
+  .comp-print__name {
+    font-size: 0.82rem;
+    margin-top: 4px;
+  }
+  .comp-print__tape {
+    top: -8px;
+    height: 16px;
+  }
+  .landing__foot {
+    padding: 0 16px 18px;
+    text-align: center;
+    font-size: 0.85rem;
+  }
+
+  /* --- studios: full screen, one scrolling page --- */
+  .studio-overlay {
+    padding: 0;
+    align-items: stretch;
+  }
+  .studio-frame {
+    width: 100vw;
+  }
+  .studio-frame > .book {
+    height: 100dvh;
+    border-radius: 0;
+    padding: 6px;
+  }
+  .page--spread {
+    border-radius: 8px;
+  }
+  .page > .studio-page {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  .studio-page {
+    padding: 18px 16px 20px;
+  }
+  /* header row (eyebrow + title + steps / save) wraps instead of overflowing */
+  .studio-page > div:first-child {
+    flex-wrap: wrap;
+    row-gap: 12px;
+    padding-right: 44px;
+  }
+  .studio-page .eyebrow {
+    font-size: 0.72rem;
+  }
+  .studio-title {
+    font-size: 1.45rem;
+  }
+  .studio-copy {
+    font-size: 0.92rem;
+  }
+  .studio-action,
+  .studio-action--quiet {
+    font-size: 1rem;
+    padding: 10px 0 2px;
+  }
+  .studio-close {
+    top: 12px;
+    right: 12px;
+    width: 40px;
+    height: 40px;
+    font-size: 22px;
+  }
+  .steps {
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    font-size: 0.66rem;
+    letter-spacing: 0.12em;
+  }
+  .steps li .n {
+    font-size: 0.85rem;
+  }
+  /* the steps row is shrink-0 for desktop; let it take the full width and wrap */
+  .studio-page .steps {
+    flex-shrink: 1;
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* work surfaces take their natural shape at full width */
+  .compose-stage {
+    flex: none;
+    min-height: 0;
+  }
+  .station-stage {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+  }
+  .compose-stage:not(.station-stage) {
+    width: 100%;
+    aspect-ratio: 8 / 5;
+  }
+  .station-sheet {
+    padding: 4px;
+  }
+  .station-sheet .studio-title {
+    font-size: 1.2rem;
+  }
+
+  /* bigger touch targets */
+  .tool-chip {
+    font-size: 0.9rem;
+    padding: 0.45em 0.95em;
+  }
+  .sticker-tray {
+    gap: 10px;
+    padding: 6px 2px 10px;
+  }
+  .sticker-tray > button,
+  .tray-item {
+    width: 64px;
+    height: 64px;
+    padding: 6px;
+  }
+  .station-tray .sticker-tray:not(:empty) {
+    min-height: 64px;
+  }
+}
+
+/* No hover on touch screens: keep delete buttons visible and skip hover lifts. */
+@media (hover: none) {
+  .scrap-delete {
+    opacity: 1;
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
+  .sticker-cut-wrap:hover .sticker-cut,
+  button:hover > .sticker-cut {
+    transform: rotate(var(--tilt, 0deg));
+  }
+}
+.only-touch {
+  display: none;
+}
+@media (hover: none) and (pointer: coarse) {
+  .only-touch {
+    display: inline;
+  }
+  .only-mouse {
+    display: none;
+  }
+}

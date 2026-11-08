@@ -309,7 +309,12 @@ export function StickerStation({
         {hasBody && !lassoCapture && (
           <>
             <span className="studio-copy text-muted">
-              drag to turn · right-drag to slide · scroll to step closer
+              <span className="only-mouse">
+                drag to turn · right-drag to slide · scroll to step closer
+              </span>
+              <span className="only-touch">
+                drag to turn · two fingers to slide · pinch to step closer
+              </span>
             </span>
             <button type="button" onClick={startLasso} className="studio-action">
               cut a shape ✎
@@ -436,7 +441,10 @@ function FileDrop({ onPick }: { onPick: (f: File) => void }) {
       <div className="studio-copy text-muted mt-3 max-w-xs">
         a photograph, a sketch, anything with a shape.
       </div>
-      <div className="studio-action mt-6">click or drop →</div>
+      <div className="studio-action mt-6">
+        <span className="only-mouse">click or drop →</span>
+        <span className="only-touch">tap to choose a photo →</span>
+      </div>
     </label>
   );
 }
