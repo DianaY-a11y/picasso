@@ -119,7 +119,7 @@ export function StickerStation({
     const ac = new AbortController();
     abortRef.current = ac;
     try {
-      const { glb, model } = await generateModel(file, {
+      const { glb, model, provider } = await generateModel(file, {
         signal: ac.signal,
         onStatus: setGenStatus,
       });
@@ -129,7 +129,7 @@ export function StickerStation({
         sourceImageId: sId,
         createdAt: Date.now(),
         meshBlob: glb,
-        provider: "replicate",
+        provider,
         modelVersion: model,
       });
       setModelAssetId(mId);
@@ -201,7 +201,7 @@ export function StickerStation({
   async function onLassoSave(blob: Blob) {
     await saveStickerBlob(blob);
     setLassoCapture(null);
-    setNote("Saved to your scrapbook. Cut another shape or turn to a new angle.");
+    setNote(null);
   }
 
   const title = lassoCapture
@@ -213,11 +213,7 @@ export function StickerStation({
         : "give it a body";
 
   const genLabel =
-    genStatus === "downloading"
-      ? "bringing the body home…"
-      : genStatus === "processing"
-        ? "shaping a body… this can take a few minutes"
-        : "waking the sculptor…";
+    genStatus === "downloading" ? "bringing the body home…" : "shaping a body…";
 
   /* Everything sits on one loose sheet laid across the open book, like the
      composition studio: header + steps above, the work sheet in the middle,
@@ -251,11 +247,11 @@ export function StickerStation({
               <img
                 src={previewUrl}
                 alt={file?.name ?? "preview"}
-                className={`min-h-0 max-w-full max-h-full object-contain ${
+                className={`flex-1 min-h-0 max-w-full object-contain ${
                   phase === "generating" ? "animate-pulse" : ""
                 }`}
               />
-              <div className="studio-copy text-muted mt-2 truncate max-w-full">
+              <div className="studio-copy text-muted mt-2 shrink-0 truncate max-w-full">
                 {file?.name}
               </div>
             </div>
@@ -375,11 +371,11 @@ export function StickerStation({
 
       {/* just taken */}
       <div className="mt-3 station-tray">
-        <h3 className="eyebrow">
-          {recent.length > 0
-            ? `just taken · ${recent.length} — saved to your scrapbook`
-            : "your new stickers will collect here"}
-        </h3>
+        {recent.length > 0 && (
+          <h3 className="eyebrow">
+            {`just taken · ${recent.length} — saved to your scrapbook`}
+          </h3>
+        )}
         <div className="sticker-tray mt-1">
           {recent.map((r) => (
             <span key={r.id} className="tray-item">

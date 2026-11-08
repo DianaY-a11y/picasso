@@ -4,90 +4,40 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 /**
- * Image → 3D, done in a way that fits inside Vercel Functions' limits:
+ * Image → 3D with Stability AI's SPAR3D (Stable Point Aware 3D).
  *
- *  - Request and response bodies are capped at 4.5 MB, and a textured GLB is
- *    usually much bigger. So the GLB never passes through a buffered
- *    response: the client downloads it from Replicate's delivery URL (or via
- *    the streaming proxy below, which is not subject to that cap).
- *  - Generation can take minutes. So instead of blocking on
- *    `replicate.run()`, POST starts a prediction and returns its id, and the
- *    client polls GET ?id=… until it finishes.
+ * SPAR3D runs on Stability's always-on servers and answers in a few seconds
+ * with the finished GLB, so there is no job to poll and no cold start. It is
+ * Stable Fast 3D plus a point-cloud stage that guesses the unseen back of the
+ * object better, at 4 credits a model instead of 10. The GLB is streamed straight through (streamed responses are not
+ * subject to Vercel's 4.5 MB buffered-body cap).
  *
- *  POST  (multipart "image")  → { id }
- *  GET   ?id=<prediction>     → { status, modelUrl?, error? }
- *  GET   ?file=<delivery url> → streams the GLB (CORS fallback)
+ *  POST (multipart "image") → model/gltf-binary, or { ok:false, reason, message }
  */
 
-const REPLICATE_MODEL =
-  process.env.REPLICATE_IMAGE_TO_3D_MODEL ??
-  "tencent/hunyuan-3d-3.1:a2838628b41a2e0ee2eb19b3ea98a40d75f8d7639bf5a1ddd37ea299bb334854";
+const ENDPOINT = "https://api.stability.ai/v2beta/3d/stable-point-aware-3d";
+const MODEL = "stability/stable-point-aware-3d";
 
-function buildInput(model: string, dataUrl: string): Record<string, unknown> {
-  const slug = model.split(":")[0];
-  if (slug === "firtoz/trellis") {
-    return {
-      images: [dataUrl],
-      texture_size: 1024,
-      mesh_simplify: 0.9,
-      generate_color: true,
-      generate_model: true,
-      randomize_seed: true,
-      generate_normal: false,
-      save_gaussian_ply: false,
-      ss_sampling_steps: 25,
-      slat_sampling_steps: 25,
-      return_no_background: false,
-      ss_guidance_strength: 7.5,
-      slat_guidance_strength: 3,
-    };
-  }
-  // Default: tencent/hunyuan-3d-3.1 shape.
-  return {
-    image: dataUrl,
-    enable_pbr: true,
-    face_count: 500000,
-    generate_type: "Normal",
-  };
-}
+const NO_KEY_MESSAGE =
+  "STABILITY_API_KEY is not set for this deployment. In Vercel, add it under Settings → Environment Variables (Production and Preview) and redeploy.";
 
 function fail(reason: string, message: string, status: number) {
   return Response.json({ ok: false, reason, message }, { status });
 }
 
-async function client() {
-  const token = process.env.REPLICATE_API_TOKEN;
-  if (!token) return null;
-  const { default: Replicate } = await import("replicate");
-  return new Replicate({ auth: token });
-}
-
-const NO_TOKEN_MESSAGE =
-  "REPLICATE_API_TOKEN is not set for this deployment. In Vercel, check that the variable exists for this environment (Production and/or Preview) and redeploy.";
-
-/** Pull the GLB URL out of whatever shape the model returns. */
-function findModelUrl(output: unknown): string | null {
-  if (!output) return null;
-  if (typeof output === "string") return output;
-  if (Array.isArray(output)) {
-    const urls = output.filter((o): o is string => typeof o === "string");
-    return urls.find((u) => /\.glb(\?|$)/i.test(u)) ?? urls[0] ?? null;
+/** Stability errors look like { name, errors: string[] }. */
+async function upstreamMessage(res: Response): Promise<string> {
+  try {
+    const body = (await res.json()) as { name?: string; errors?: string[]; message?: string };
+    return body.errors?.join(" ") || body.message || body.name || `Stability answered ${res.status}.`;
+  } catch {
+    return `Stability answered ${res.status}.`;
   }
-  if (typeof output === "object") {
-    const o = output as Record<string, unknown>;
-    for (const key of ["model_file", "mesh", "glb", "model", "output"]) {
-      const v = findModelUrl(o[key]);
-      if (v) return v;
-    }
-    const all = Object.values(o).map(findModelUrl).filter(Boolean) as string[];
-    return all.find((u) => /\.glb(\?|$)/i.test(u)) ?? null;
-  }
-  return null;
 }
 
 export async function POST(req: NextRequest) {
-  const replicate = await client();
-  if (!replicate) return fail("no_token", NO_TOKEN_MESSAGE, 503);
+  const key = process.env.STABILITY_API_KEY;
+  if (!key) return fail("no_token", NO_KEY_MESSAGE, 503);
 
   let file: FormDataEntryValue | null;
   try {
@@ -95,84 +45,55 @@ export async function POST(req: NextRequest) {
   } catch {
     return fail("bad_request", "Could not read the uploaded image.", 400);
   }
-  if (!(file instanceof Blob)) {
-    return fail("no_image", "Missing image upload.", 400);
-  }
+  if (!(file instanceof Blob)) return fail("no_image", "Missing image upload.", 400);
 
-  const base64 = Buffer.from(await file.arrayBuffer()).toString("base64");
-  const dataUrl = `data:${file.type || "image/png"};base64,${base64}`;
-  const [model, version] = REPLICATE_MODEL.split(":");
+  const form = new FormData();
+  form.append("image", file, "image.png");
+  form.append("texture_resolution", "1024");
+  form.append("remesh", "none");
 
+  let upstream: Response;
   try {
-    const prediction = await replicate.predictions.create(
-      version
-        ? { version, input: buildInput(REPLICATE_MODEL, dataUrl) }
-        : {
-            model: model as `${string}/${string}`,
-            input: buildInput(REPLICATE_MODEL, dataUrl),
-          },
-    );
-    return Response.json({ ok: true, id: prediction.id, model: REPLICATE_MODEL });
+    upstream = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}` },
+      body: form,
+    });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    console.error("[generate-model] create failed:", message);
-    return fail("replicate_error", message, 502);
+    console.error("[generate-model] request failed:", message);
+    return fail("network", "Could not reach Stability AI.", 502);
   }
-}
 
-export async function GET(req: NextRequest) {
-  const fileUrl = req.nextUrl.searchParams.get("file");
-  if (fileUrl) return proxyFile(fileUrl);
-
-  const id = req.nextUrl.searchParams.get("id");
-  if (!id) return fail("no_id", "Missing prediction id.", 400);
-
-  const replicate = await client();
-  if (!replicate) return fail("no_token", NO_TOKEN_MESSAGE, 503);
-
-  try {
-    const p = await replicate.predictions.get(id);
-    if (p.status === "succeeded") {
-      const modelUrl = findModelUrl(p.output);
-      if (!modelUrl) {
-        console.error("[generate-model] no GLB in output:", JSON.stringify(p.output));
-        return Response.json({
-          status: "failed",
-          error: "The model finished but returned no 3D file.",
-        });
-      }
-      return Response.json({ status: "succeeded", modelUrl });
-    }
-    if (p.status === "failed" || p.status === "canceled") {
-      const error = typeof p.error === "string" ? p.error : `Generation ${p.status}.`;
-      console.error("[generate-model] prediction", p.status, error);
-      return Response.json({ status: "failed", error });
-    }
-    return Response.json({ status: p.status });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    return fail("replicate_error", message, 502);
-  }
-}
-
-/** Streams a Replicate delivery file through, for browsers that hit CORS.
- *  Streaming responses are not subject to the 4.5 MB buffered-body cap. */
-async function proxyFile(raw: string) {
-  let url: URL;
-  try {
-    url = new URL(raw);
-  } catch {
-    return fail("bad_url", "Invalid file URL.", 400);
-  }
-  if (url.protocol !== "https:" || !/(^|\.)replicate\.delivery$/.test(url.hostname)) {
-    return fail("bad_url", "Only Replicate delivery URLs can be proxied.", 400);
-  }
-  const upstream = await fetch(url);
   if (!upstream.ok || !upstream.body) {
-    return fail("fetch_failed", `Could not download the model (${upstream.status}).`, 502);
+    const message = await upstreamMessage(upstream);
+    console.error("[generate-model] stability", upstream.status, message);
+    const reason =
+      upstream.status === 401 || upstream.status === 403
+        ? "bad_key"
+        : upstream.status === 402
+          ? "no_credits"
+          : upstream.status === 429
+            ? "rate_limited"
+            : "stability_error";
+    const friendly =
+      reason === "no_credits"
+        ? "The Stability AI account is out of credits."
+        : reason === "bad_key"
+          ? "The Stability AI key was refused."
+          : reason === "rate_limited"
+            ? "Too many requests at once — try again in a moment."
+            : message;
+    return fail(reason, friendly, upstream.status >= 500 ? 502 : upstream.status);
   }
+
   return new Response(upstream.body, {
     status: 200,
-    headers: { "Content-Type": "model/gltf-binary" },
+    headers: {
+      "Content-Type": "model/gltf-binary",
+      "X-Picasso-Provider": "stability",
+      "X-Picasso-Model": MODEL,
+      "Cache-Control": "no-store",
+    },
   });
 }
