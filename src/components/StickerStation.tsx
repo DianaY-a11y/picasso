@@ -201,7 +201,7 @@ export function StickerStation({
   async function onLassoSave(blob: Blob) {
     await saveStickerBlob(blob);
     setLassoCapture(null);
-    setNote("Saved to your scrapbook. Cut another shape or turn to a new angle.");
+    setNote(null);
   }
 
   const title = lassoCapture
@@ -251,11 +251,11 @@ export function StickerStation({
               <img
                 src={previewUrl}
                 alt={file?.name ?? "preview"}
-                className={`min-h-0 max-w-full max-h-full object-contain ${
+                className={`flex-1 min-h-0 max-w-full object-contain ${
                   phase === "generating" ? "animate-pulse" : ""
                 }`}
               />
-              <div className="studio-copy text-muted mt-2 truncate max-w-full">
+              <div className="studio-copy text-muted mt-2 shrink-0 truncate max-w-full">
                 {file?.name}
               </div>
             </div>
@@ -375,11 +375,11 @@ export function StickerStation({
 
       {/* just taken */}
       <div className="mt-3 station-tray">
-        <h3 className="eyebrow">
-          {recent.length > 0
-            ? `just taken · ${recent.length} — saved to your scrapbook`
-            : "your new stickers will collect here"}
-        </h3>
+        {recent.length > 0 && (
+          <h3 className="eyebrow">
+            {`just taken · ${recent.length} — saved to your scrapbook`}
+          </h3>
+        )}
         <div className="sticker-tray mt-1">
           {recent.map((r) => (
             <span key={r.id} className="tray-item">
